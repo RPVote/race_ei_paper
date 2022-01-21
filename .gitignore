@@ -1,9 +1,26 @@
+*.pdf
+
+# Extra folders
+plots/
+webGL/
+data/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# MacOS
+.DS_Store
+
 # History files
 .Rhistory
 .Rapp.history
 
 # Session Data files
 .RData
+
+# R data files
+*.rds
+*.rda
 
 # User-specific files
 .Ruserdata
