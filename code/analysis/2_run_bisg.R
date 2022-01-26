@@ -81,7 +81,7 @@ vf <- bisg::bisg(
   geography = "block",
   state = "GA",
   year = 2010,
-  impute_missing = FALSE,
+  impute_missing = TRUE,
   verbose = TRUE,
   cache = TRUE)
 

@@ -68,12 +68,12 @@ cand_cols <- c("abrams_prop", "kemp_prop", "metz_prop")
 # Ground truth: Iterative EI
 ei_iter_true <- eiCompare::ei_iter(
   data = results,
-  cand_cols = cand_cols[1:2],
-  race_cols = race_true[1:2],
+  cand_cols = cand_cols,
+  race_cols = race_true,
   totals_col = "total_votes",
   verbose = TRUE,
   plots = FALSE,
-  par_compute = par_compute,
+  par_compute = FALSE,
   name = "",
   seed = 784392)
 ei_iter_true_summary <- summary(ei_iter_true)
@@ -131,8 +131,8 @@ if (verbose) {
 # BISG: Iterative EI
 ei_iter_bisg <- eiCompare::ei_iter(
   data = results,
-  cand_cols = cand_cols[1:2],
-  race_cols = race_bisg[1:2],
+  cand_cols = cand_cols,
+  race_cols = race_bisg,
   totals_col = "total_votes",
   verbose = TRUE,
   plots = FALSE,

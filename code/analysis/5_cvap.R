@@ -160,6 +160,7 @@ cvap_codes <- c("AIAN",
                 "MULTI",
                 "HL")
 
+
 # Filter out Georgia from CVAP file, and tidy up into the standard above
 df_ga_cvap <- df_cvap %>%
   dplyr::mutate(GEOID = substr(geoid, 8, 1000)) %>%
