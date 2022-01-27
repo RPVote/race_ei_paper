@@ -30,9 +30,9 @@ get_errors <- function(y, yhat, weights = n_voters) {
 
   missing_y <- sum(is.na(y))
   missing_yhat <- sum(is.na(yhat))
-  if(missing_y > 0 | missing_yhat > 0) {
-    warning(removing )
-  }
+  # if(missing_y > 0 | missing_yhat > 0) {
+  #   warning(removing )
+  # }
 
   RMSE <- sqrt(1/sum(log(weights)) * sum(log(weights)*((yhat - y)^2)))
   MAD <- 1/sum(log(weights)) * sum(log(weights)*(abs(yhat - y)))

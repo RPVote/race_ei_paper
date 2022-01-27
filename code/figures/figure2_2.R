@@ -10,6 +10,8 @@ suppressWarnings(suppressMessages({
   library(readr)
   library(tidyverse)
   library(patchwork)
+  library(ggExtra)
+  library(ggpubr)
 }))
 
 # Turn verbosity on or off
@@ -115,43 +117,48 @@ race_ests <- race_ests %>%
 
   )
 
-plot <-
-  ggplot(data = race_ests, aes(x = theil, y = brier_score_bisg)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_smooth(method = 'lm', color = "black", fill = 'black', size = 2) +
-  xlab("Theil's Entropy Index") +
-  ylab("Brier Score (BISG)") +
-  scale_y_log10() +
-  plot_theme
-ggsave(filename = "FigureF1a_left.pdf", plot = plot, width = 8, height = 8)
+plot_left <- race_ests %>%
+  ggplot(aes(x = theil)) +
+    geom_histogram(
+      aes(y = ..density..), 
+      color = 'black', 
+      fill = "grey",
+      binwidth = .05
+    ) +
+    scale_x_continuous(expand = c(0.01,0.01), breaks = c(0, .5, .9, 1.0)) +
+    scale_y_continuous(expand = c(0.01,0.01)) +
+    geom_vline(xintercept = 0.9, size = 1, linetype = "dashed") +
+    xlab("Theil's Entropy Index") +
+    ylab("Density") +
+    plot_theme 
+ggsave(filename = "Figure2_left.pdf",  width = 10, height = 12)
 
-plot <-
-  ggplot(data = race_ests, aes(x = theil, y = brier_score_cvap)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_smooth(method = 'lm', color = "black", fill = 'black', size = 2) +
-  xlab("Theil's Entropy Index") +
-  ylab("Brier Score (BISG)") +
-  scale_y_log10() +
-  plot_theme
-
-plot <- race_ests %>%
+race_ests %>%
   dplyr::rename(
     "BISG" = brier_score_bisg,
-    "VAP" = brier_score_vap,
     "CVAP" = brier_score_cvap,
   ) %>%
-  pivot_longer(cols = one_of("BISG", "VAP", "CVAP"), names_to = "Estimate:", values_to = "brier")  %>%
+  pivot_longer(cols = one_of("BISG", "CVAP"), names_to = "Estimate:", values_to = "brier")  %>%
   ggplot(aes(x = theil, y = brier)) +
+  geom_point(alpha = 0) +
   geom_smooth(method = 'loess', size = 2, aes(linetype = `Estimate:`), color = 'black') +
+  geom_hline(yintercept = .01, size = .5, linetype = "dashed") +
+  geom_hline(yintercept = .003, size = .5, linetype = "dashed") +
+  geom_vline(xintercept = 0.9, size = .5, linetype = "dashed") +
   xlab("Theil's Entropy Index") +
   ylab("Brier Score") +
-  scale_linetype_manual(values = c("solid", "twodash", "dotted")) +
-  scale_y_log10() +
+  scale_linetype_manual(values = c("solid", "dotted")) +
+  scale_y_log10(
+    expand = c(0.01,0.01),
+    breaks = c(.00001, .0001, .001, .003, .01, .1),
+    labels = c(".00001", ".0001", ".001", ".003", ".01", ".1")
+  ) +
+  scale_x_continuous(expand = c(0.01,0.01), breaks = c(0, .5, .9, 1.0)) +
   plot_theme +
   theme(legend.position = c(.85,.2),
         legend.title = element_blank(),
         legend.text = element_text(size = 16),
         legend.key.size = unit(.5, "in"),
         legend.background = element_blank())
-ggsave(filename = "FigureF1a_right.pdf", plot = plot, width = 8, height = 8)
+ggsave(filename = "Figure2_right.pdf", width = 10, height = 12)
 

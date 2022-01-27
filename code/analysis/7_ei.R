@@ -68,7 +68,7 @@ cand_cols <- c("abrams_prop", "kemp_prop", "metz_prop")
 # Ground truth: Iterative EI
 ei_iter_true <- eiCompare::ei_iter(
   data = results,
-  cand_cols = cand_cols,
+  cand_cols = cand_cols[1:2],
   race_cols = race_true,
   totals_col = "total_votes",
   verbose = TRUE,
@@ -76,8 +76,7 @@ ei_iter_true <- eiCompare::ei_iter(
   par_compute = FALSE,
   name = "",
   seed = 784392)
-ei_iter_true_summary <- summary(ei_iter_true)
-rm(ei_iter_true)
+
 # # Store results
 # mean <- c(ei_iter_true_summary$whi_true_prop$mean,
 #           ei_iter_true_summary$bla_true_prop$mean)
@@ -106,8 +105,7 @@ ei_rxc_true <- eiCompare::ei_rxc(
   n_chains = 1,
   name = "rxc_true",
   seed = 76689115)
-ei_rxc_true_summary <- summary(ei_rxc_true)
-rm(ei_rxc_true)
+
 # Store results
 # mean <- c(mean,
 #           ei_rxc_true_summary$whi_true_prop$mean[1:2],
@@ -131,7 +129,7 @@ if (verbose) {
 # BISG: Iterative EI
 ei_iter_bisg <- eiCompare::ei_iter(
   data = results,
-  cand_cols = cand_cols,
+  cand_cols = cand_cols[1:2],
   race_cols = race_bisg,
   totals_col = "total_votes",
   verbose = TRUE,
@@ -139,7 +137,6 @@ ei_iter_bisg <- eiCompare::ei_iter(
   par_compute = par_compute,
   name = "iter_bisg",
   seed = 12289115)
-ei_iter_bisg_summary <- summary(ei_iter_bisg)
 # rm(ei_iter_bisg)
 # mean <- c(mean,
 #           ei_iter_bisg_summary$whi_true_prop$mean,
@@ -172,7 +169,7 @@ ei_rxc_bisg <- eiCompare::ei_rxc(
   n_chains = 1,
   name = "rxc_true",
   seed = 435575087)
-ei_rxc_bisg_summary <- summary(ei_rxc_bisg)
+
 # rm(ei_rxc_bisg)
 # mean <- c(mean,
 #           ei_rxc_bisg_summary$whi_true_prop$mean[1:2],
@@ -197,7 +194,7 @@ if (verbose) {
 ei_iter_cvap <- eiCompare::ei_iter(
   data = results,
   cand_cols = cand_cols[1:2],
-  race_cols = race_cvap[1:2],
+  race_cols = race_cvap,
   totals_col = "total_votes",
   verbose = TRUE,
   plots = FALSE,
