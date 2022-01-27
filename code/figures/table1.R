@@ -17,7 +17,8 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 # Set the base path: where all data files are located
 base_path <- "../../data"
 agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
-race_ests <- readRDS(agg_path)
+race_ests <- readRDS(agg_path) %>%
+  select(-geometry)
 
 n_voters <- race_ests$whi_true_total + race_ests$bla_true_total +
             race_ests$his_true_total + race_ests$asi_true_total +
@@ -35,17 +36,18 @@ get_errors <- function(y, yhat, weights = n_voters) {
 
   RMSE <- sqrt(1/sum(log(weights)) * sum(log(weights)*((yhat - y)^2)))
   MAD <- 1/sum(log(weights)) * sum(log(weights)*(abs(yhat - y)))
-  return(data.frame("RMSE" = RMSE, "MAD" = MAD))
+  BIAS <- 1/sum(log(weights)) * sum(log(weights)*(yhat - y))
+  return(data.frame("RMSE" = RMSE, "MAD" = MAD, "BIAS" = BIAS))
 }
 
-get_errors(race_ests$whi_true, race_ests$whi_2018_cvap_ext_prop)
-get_errors(race_ests$bla_true, race_ests$bla_2018_cvap_ext_prop)
-get_errors(race_ests$his_true, race_ests$asi_2018_cvap_ext_prop)
-get_errors(race_ests$asi_true, race_ests$asi_2018_cvap_ext_prop)
-get_errors(race_ests$oth_true, race_ests$oth_2018_cvap_ext_prop)
+get_errors(race_ests$whi_true_prop, race_ests$whi_2018_cvap_ext_prop)
+get_errors(race_ests$bla_true_prop, race_ests$bla_2018_cvap_ext_prop)
+get_errors(race_ests$his_true_prop, race_ests$asi_2018_cvap_ext_prop)
+get_errors(race_ests$asi_true_prop, race_ests$asi_2018_cvap_ext_prop)
+get_errors(race_ests$oth_true_prop, race_ests$oth_2018_cvap_ext_prop)
 
-get_errors(race_ests$whi_true, race_ests$whi_bisg)
-get_errors(race_ests$bla_true, race_ests$bla_bisg)
-get_errors(race_ests$his_true, race_ests$his_bisg)
-get_errors(race_ests$asi_true, race_ests$asi_bisg)
-get_errors(race_ests$oth_true, race_ests$oth_bisg)
+get_errors(race_ests$whi_true_prop, race_ests$whi_bisg_prop)
+get_errors(race_ests$bla_true_prop, race_ests$bla_bisg_prop)
+get_errors(race_ests$his_true_prop, race_ests$his_bisg_prop)
+get_errors(race_ests$asi_true_prop, race_ests$asi_bisg_prop)
+get_errors(race_ests$oth_true_prop, race_ests$oth_bisg_prop)
