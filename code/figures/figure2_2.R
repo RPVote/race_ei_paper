@@ -32,7 +32,7 @@ plot_theme <-
         axis.title = element_text(size = 23, face = "bold"),
         axis.title.x = element_text(margin = margin(t = 20)),
         axis.title.y = element_text(margin = margin(r = 20)),
-        plot.title = element_text(size = 27, face = "bold", hjust = 0.5),
+        plot.title = element_text(size = 27, face = "bold"),
         legend.position = "none")
 
 # Compute Theil's entropy index and Brier score
@@ -128,10 +128,12 @@ plot_left <- race_ests %>%
     scale_x_continuous(expand = c(0.01,0.01), breaks = c(0, .5, .9, 1.0)) +
     scale_y_continuous(expand = c(0.01,0.01)) +
     geom_vline(xintercept = 0.9, size = 1, linetype = "dashed") +
+    ggtitle("a") +
     xlab("Theil's Entropy Index") +
     ylab("Density") +
     plot_theme 
-ggsave(filename = "Figure2_left.pdf",  width = 10, height = 12)
+plot_left
+ggsave(filename = "Figure2_left.pdf",  width = 10, height = 10)
 
 race_ests %>%
   dplyr::rename(
@@ -145,20 +147,22 @@ race_ests %>%
   geom_hline(yintercept = .01, size = .5, linetype = "dashed") +
   geom_hline(yintercept = .003, size = .5, linetype = "dashed") +
   geom_vline(xintercept = 0.9, size = .5, linetype = "dashed") +
+  ggtitle("b") +
   xlab("Theil's Entropy Index") +
   ylab("Brier Score") +
   scale_linetype_manual(values = c("solid", "dotted")) +
   scale_y_log10(
     expand = c(0.01,0.01),
-    breaks = c(.00001, .0001, .001, .003, .01, .1),
-    labels = c(".00001", ".0001", ".001", ".003", ".01", ".1")
+    breaks = c(.00001, .0001, .001, .003, .01),
+    labels = c("1e-5", "1-e4", ".001", ".003", ".01")
   ) +
   scale_x_continuous(expand = c(0.01,0.01), breaks = c(0, .5, .9, 1.0)) +
+  coord_cartesian(ylim = c(.000005, .013)) +
   plot_theme +
   theme(legend.position = c(.85,.2),
         legend.title = element_blank(),
-        legend.text = element_text(size = 16),
-        legend.key.size = unit(.5, "in"),
+        legend.text = element_text(size = 20),
+        legend.key.size = unit(1, "in"),
         legend.background = element_blank())
-ggsave(filename = "Figure2_right.pdf", width = 10, height = 12)
+ggsave(filename = "Figure2_right.pdf", width = 10, height = 10)
 
