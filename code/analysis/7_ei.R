@@ -37,7 +37,18 @@ if (verbose) {
 # Import election results
 results <- readRDS(ga_agg_path) %>%
   # Filter out precincts with no votes
-  dplyr::filter(total_votes > 0)
+  dplyr::filter(total_votes > 0) %>%
+  as_tibble() %>%
+  select(-geometry)
+
+# Combine Asian and Other to match up with exit poll
+results <- results %>%
+  mutate(
+    oth_true_prop = oth_true_prop + asi_true_prop,
+    oth_bisg_prop = oth_bisg_prop + asi_bisg_prop,
+    oth_2018_cvap_ext_prop = oth_2018_cvap_ext_prop + asi_2018_cvap_ext_prop,
+    oth_2018_cvap_int_prop = oth_2018_cvap_int_prop + asi_2018_cvap_int_prop
+  )
 
 if (verbose) {
   message("Precinct results read in.")
@@ -49,26 +60,52 @@ if (verbose) {
 race_true <- c("whi_true_prop",
                "bla_true_prop",
                "his_true_prop",
-               "asi_true_prop",
                "oth_true_prop")
 race_bisg <- c("whi_bisg_prop",
                "bla_bisg_prop",
                "his_bisg_prop",
-               "asi_bisg_prop",
                "oth_bisg_prop")
 race_cvap <- c("whi_2018_cvap_int_prop",
                "bla_2018_cvap_int_prop",
                "his_2018_cvap_int_prop",
-               "asi_2018_cvap_int_prop",
                "oth_2018_cvap_int_prop")
 
 # Candidate vectors
-cand_cols <- c("abrams_prop", "kemp_prop", "metz_prop")
+cand_cols <- c("abrams_prop", "kemp_prop")
+
+# Make abrams + kemp == 1 
+results <- results %>%
+  mutate(
+    total = abrams_prop + kemp_prop,
+    abrams_prop = abrams_prop / total,
+    kemp_prop = kemp_prop / total
+  )
+
+# Confirm all proportions are valid
+results %>%
+  select(any_of(race_true)) %>%
+  rowSums()
+
+results %>%
+  select(any_of(race_bisg)) %>%
+  rowSums()
+
+results %>%
+  select(any_of(race_cvap)) %>%
+  rowSums()
+
+results %>%
+  select(any_of(race_true)) %>%
+  rowSums()
+
+results %>%
+  select(any_of(cand_cols)) %>%
+  rowSums()
 
 # Ground truth: Iterative EI
 ei_iter_true <- eiCompare::ei_iter(
   data = results,
-  cand_cols = cand_cols[1:2],
+  cand_cols = cand_cols,
   race_cols = race_true,
   totals_col = "total_votes",
   verbose = TRUE,
@@ -76,16 +113,6 @@ ei_iter_true <- eiCompare::ei_iter(
   par_compute = FALSE,
   name = "",
   seed = 784392)
-
-# # Store results
-# mean <- c(ei_iter_true_summary$whi_true_prop$mean,
-#           ei_iter_true_summary$bla_true_prop$mean)
-# sd <- c(ei_iter_true_summary$whi_true_prop$sd,
-#         ei_iter_true_summary$bla_true_prop$sd)
-# ci_95_lower <- c(ei_iter_true_summary$whi_true_prop$ci_95_lower,
-#                  ei_iter_true_summary$bla_true_prop$ci_95_lower)
-# ci_95_upper <- c(ei_iter_true_summary$whi_true_prop$ci_95_upper,
-#                  ei_iter_true_summary$bla_true_prop$ci_95_upper)
 
 if (verbose) {
   message("Iterative EI on ground truth complete.")
@@ -106,20 +133,6 @@ ei_rxc_true <- eiCompare::ei_rxc(
   name = "rxc_true",
   seed = 76689115)
 
-# Store results
-# mean <- c(mean,
-#           ei_rxc_true_summary$whi_true_prop$mean[1:2],
-#           ei_rxc_true_summary$bla_true_prop$mean[1:2])
-# sd <- c(sd,
-#         ei_rxc_true_summary$whi_true_prop$sd[1:2],
-#         ei_rxc_true_summary$bla_true_prop$sd[1:2])
-# ci_95_lower <- c(ci_95_lower,
-#                  ei_rxc_true_summary$whi_true_prop$ci_95_lower[1:2],
-#                  ei_rxc_true_summary$bla_true_prop$ci_95_lower[1:2])
-# ci_95_upper <- c(ci_95_upper,
-#                  ei_rxc_true_summary$whi_true_prop$ci_95_upper[1:2],
-#                  ei_rxc_true_summary$bla_true_prop$ci_95_upper[1:2])
-
 if (verbose) {
   message("RxC EI on ground truth complete.")
   message("======================================================")
@@ -129,7 +142,7 @@ if (verbose) {
 # BISG: Iterative EI
 ei_iter_bisg <- eiCompare::ei_iter(
   data = results,
-  cand_cols = cand_cols[1:2],
+  cand_cols = cand_cols,
   race_cols = race_bisg,
   totals_col = "total_votes",
   verbose = TRUE,
@@ -137,19 +150,6 @@ ei_iter_bisg <- eiCompare::ei_iter(
   par_compute = par_compute,
   name = "iter_bisg",
   seed = 12289115)
-# rm(ei_iter_bisg)
-# mean <- c(mean,
-#           ei_iter_bisg_summary$whi_true_prop$mean,
-#           ei_iter_bisg_summary$bla_true_prop$mean)
-# sd <- c(sd,
-#         ei_iter_bisg_summary$whi_true_prop$sd,
-#         ei_iter_bisg_summary$bla_true_prop$sd)
-# ci_95_lower <- c(ci_95_lower,
-#                  ei_iter_bisg_summary$whi_true_prop$ci_95_lower,
-#                  ei_iter_bisg_summary$bla_true_prop$ci_95_lower)
-# ci_95_upper <- c(ci_95_upper,
-#                  ei_iter_bisg_summary$whi_true_prop$ci_95_upper,
-#                  ei_iter_bisg_summary$bla_true_prop$ci_95_upper)
 
 if (verbose) {
   message("Iterative EI on BISG input complete.")
@@ -170,20 +170,6 @@ ei_rxc_bisg <- eiCompare::ei_rxc(
   name = "rxc_true",
   seed = 435575087)
 
-# rm(ei_rxc_bisg)
-# mean <- c(mean,
-#           ei_rxc_bisg_summary$whi_true_prop$mean[1:2],
-#           ei_rxc_bisg_summary$bla_true_prop$mean[1:2])
-# sd <- c(sd,
-#         ei_rxc_bisg_summary$whi_true_prop$sd[1:2],
-#         ei_rxc_bisg_summary$bla_true_prop$sd[1:2])
-# ci_95_lower <- c(ci_95_lower,
-#                  ei_rxc_bisg_summary$whi_true_prop$ci_95_lower[1:2],
-#                  ei_rxc_bisg_summary$bla_true_prop$ci_95_lower[1:2])
-# ci_95_upper <- c(ci_95_upper,
-#                  ei_rxc_bisg_summary$whi_true_prop$ci_95_upper[1:2],
-#                  ei_rxc_bisg_summary$bla_true_prop$ci_95_upper[1:2])
-
 if (verbose) {
   message("RxC EI on BISG input complete.")
   message("======================================================")
@@ -193,15 +179,14 @@ if (verbose) {
 # CVAP: Iterative EI
 ei_iter_cvap <- eiCompare::ei_iter(
   data = results,
-  cand_cols = cand_cols[1:2],
+  cand_cols = cand_cols,
   race_cols = race_cvap,
   totals_col = "total_votes",
   verbose = TRUE,
   plots = FALSE,
-  par_compute = par_compute,
-  name = "iter_bisg",
+  par_compute = FALSE,
+  name = "iter_cvap",
   seed = 12289115)
-ei_iter_bisg_summary <- summary(ei_iter_bisg)
 
 # CVAP: RxC EI
 ei_rxc_cvap <- eiCompare::ei_rxc(
@@ -216,25 +201,128 @@ ei_rxc_cvap <- eiCompare::ei_rxc(
   n_chains = 1,
   name = "rxc_true",
   seed = 435575087)
-ei_rxc_bisg_summary <- summary(ei_rxc_bisg)
-
-# Extra preprocessing on the CVAP data
-# results <-
-#   results %>%
-#   dplyr::filter(precinct_id_2018 != "Glynn,Jekyll Island") %>%
-#   dplyr::mutate(
-#     abrams_prop = abrams_total / cvap_total,
-#     kemp_prop = kemp_total / cvap_total,
-#     metz_prop = metz_total / cvap_total,
-#     other_prop = (cvap_total - total_votes) / cvap_total) %>%
-#   dplyr::filter(other_prop >= 0)
-
-#  <- with(prec_res_s, abrams_total / cvap_total)
-# prec_res_s$kemp_prop <- with(prec_res_s, kemp_total / cvap_total)
-# prec_res_s$metz_prop <- with(prec_res_s, metz_total / cvap_total)
-# prec_res_s$pct_novote <- with(prec_res_s, (cvap_total-totalvotes)/cvap_total)
-
-# Cut out precincts that have negative pct_no_vote #
-# Due to quasi-shitty spatial join                 #
 
 
+ei_iter_bisg$estimates$ei_type <- "iter"
+ei_iter_bisg$estimates$race_type <- "bisg"
+ei_iter_cvap$estimates$ei_type <- "iter"
+ei_iter_cvap$estimates$race_type <- "cvap"
+ei_iter_true$estimates$ei_type <- "iter"
+ei_iter_true$estimates$race_type <- "true"
+
+ei_rxc_bisg$estimates$ei_type <- "rxc"
+ei_rxc_bisg$estimates$race_type <- "bisg"
+ei_rxc_cvap$estimates$ei_type <- "rxc"
+ei_rxc_cvap$estimates$race_type <- "cvap"
+ei_rxc_true$estimates$ei_type <- "rxc"
+ei_rxc_true$estimates$race_type <- "true"
+
+# Exit polling data brought in from WAPO website:
+# https://www.washingtonpost.com/graphics/2018/politics/voter-polls/georgia.html#methodology
+# Last accessed Jan 27, 2022
+exit_poll_abrams_whi <- data.frame(
+  "cand" = "abrams_prop",
+  "race" = "whi",
+  "mean" = .25,
+  "sd" = NA,
+  "ci_95_lower" = .23,
+  "ci_95_upper" = .27,
+  "ei_type" = "exit_polls",
+  "race_type" = "exit_polls"
+)
+
+exit_poll_abrams_bla <- data.frame(
+  "cand" = "abrams_prop",
+  "race" = "bla",
+  "mean" = .94,
+  "sd" = NA,
+  "ci_95_lower" = .92,
+  "ci_95_upper" = .96,
+  "ei_type" = "exit_polls",
+  "race_type" = "exit_polls"
+)
+
+exit_poll_abrams_his <- data.frame(
+  "cand" = "abrams_prop",
+  "race" = "his",
+  "mean" = .56,
+  "sd" = NA,
+  "ci_95_lower" = .54,
+  "ci_95_upper" = .58,
+  "ei_type" = "exit_polls",
+  "race_type" = "exit_polls"
+)
+
+exit_poll_abrams_oth <- data.frame(
+  "cand" = "abrams_prop",
+  "race" = "oth",
+  "mean" = .61,
+  "sd" = NA,
+  "ci_95_lower" = .59,
+  "ci_95_upper" = .63,
+  "ei_type" = "exit_polls",
+  "race_type" = "exit_polls"
+)
+
+exit_poll_kemp_whi <- data.frame(
+  "cand" = "kemp_prop",
+  "race" = "whi",
+  "mean" = .73,
+  "sd" = NA,
+  "ci_95_lower" = .71,
+  "ci_95_upper" = .75,
+  "ei_type" = "exit_polls",
+  "race_type" = "exit_polls"
+)
+
+exit_poll_kemp_bla <- data.frame(
+  "cand" = "kemp_prop",
+  "race" = "bla",
+  "mean" = .95,
+  "sd" = NA,
+  "ci_95_lower" = .93,
+  "ci_95_upper" = .97,
+  "ei_type" = "exit_polls",
+  "race_type" = "exit_polls"
+)
+
+exit_poll_kemp_his <- data.frame(
+  "cand" = "kemp_prop",
+  "race" = "his",
+  "mean" = .39,
+  "sd" = NA,
+  "ci_95_lower" = .37,
+  "ci_95_upper" = .41,
+  "ei_type" = "exit_polls",
+  "race_type" = "exit_polls"
+)
+
+exit_poll_kemp_oth <- data.frame(
+  "cand" = "kemp_prop",
+  "race" = "oth",
+  "mean" = .35,
+  "sd" = NA,
+  "ci_95_lower" = .33,
+  "ci_95_upper" = .37,
+  "ei_type" = "exit_polls",
+  "race_type" = "exit_polls"
+)
+
+all_ei_results <- as_tibble(rbind(
+  ei_iter_bisg$estimates,
+  ei_iter_cvap$estimates,
+  ei_iter_true$estimates,
+  ei_rxc_bisg$estimates,
+  ei_rxc_cvap$estimates,
+  ei_rxc_true$estimates,
+  exit_poll_abrams_whi,
+  exit_poll_abrams_bla,
+  exit_poll_abrams_his,
+  exit_poll_abrams_oth,
+  exit_poll_kemp_whi,
+  exit_poll_kemp_bla,
+  exit_poll_kemp_his,
+  exit_poll_kemp_oth
+))
+
+saveRDS(all_ei_results, "../../data/ei_results_all.rds")

@@ -117,24 +117,6 @@ race_ests <- race_ests %>%
 
   )
 
-plot_left <- race_ests %>%
-  ggplot(aes(x = theil)) +
-    geom_histogram(
-      aes(y = ..density..), 
-      color = 'black', 
-      fill = "grey",
-      binwidth = .05
-    ) +
-    scale_x_continuous(expand = c(0.01,0.01), breaks = c(0, .5, .9, 1.0)) +
-    scale_y_continuous(expand = c(0.01,0.01)) +
-    geom_vline(xintercept = 0.9, size = 1, linetype = "dashed") +
-    ggtitle("a") +
-    xlab("Theil's Entropy Index") +
-    ylab("Density") +
-    plot_theme 
-plot_left
-ggsave(filename = "Figure2_left.pdf",  width = 10, height = 10)
-
 race_ests %>%
   dplyr::rename(
     "BISG" = brier_score_bisg,
@@ -147,7 +129,7 @@ race_ests %>%
   geom_hline(yintercept = .01, size = .5, linetype = "dashed") +
   geom_hline(yintercept = .003, size = .5, linetype = "dashed") +
   geom_vline(xintercept = 0.9, size = .5, linetype = "dashed") +
-  ggtitle("b") +
+  ggtitle("a") +
   xlab("Theil's Entropy Index") +
   ylab("Brier Score") +
   scale_linetype_manual(values = c("solid", "dotted")) +
@@ -164,5 +146,22 @@ race_ests %>%
         legend.text = element_text(size = 20),
         legend.key.size = unit(1, "in"),
         legend.background = element_blank())
-ggsave(filename = "Figure2_right.pdf", width = 10, height = 10)
+ggsave(filename = "Figure2_left.pdf", width = 10, height = 10)
 
+plot_left <- race_ests %>%
+  ggplot(aes(x = theil)) +
+  stat_bin(
+    aes(y = cumsum(..density..)/40),
+    geom = "smooth",
+    color = 'black', 
+    binwidth = .025
+  ) +
+  scale_x_continuous(expand = c(0.01,0.01), breaks = c(0, .5, .9, 1.0, 1.5)) +
+  scale_y_continuous(expand = c(0.01,0.01)) +
+  geom_vline(xintercept = 0.9, size = .5, linetype = "dashed") +
+  ggtitle("b") +
+  xlab("Theil's Entropy Index") +
+  ylab("Cumulative Density") +
+  plot_theme 
+plot_left
+ggsave(filename = "Figure2_right.pdf",  width = 10, height = 10)
