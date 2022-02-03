@@ -27,8 +27,11 @@ plot_theme <-
 # Set working directory to folder in which this file is located
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-in_path <- "../../data/ei_results_all.rds"
-all_ei <- readRDS(in_path)
+base_path <- "../../data"
+agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
+county_cvap_total <- readRDS(agg_path) %>%
+  select(-geometry) %>%
+  mutate(county = )
 
 all_ei <- all_ei %>%
   mutate(cand = gsub("_prop", "", cand),
@@ -51,25 +54,28 @@ all_ei %>%
     race = ordered(race, levels = c("White", "Black", "Hispanic", "Other")),
     race_type = ordered(race_type, levels = c("exit_polls", "true", "bisg", "cvap"))
   ) %>%
-  ggplot(aes(x = race_type, y = mean, shape = ei_type)) +
+  ggplot(aes(x = race_type, y = mean, shape = ei_type, fill = race_type)) +
     geom_errorbar(
       aes(ymin = ci_95_lower, ymax = ci_95_upper),
       width = 0,
+      size = 1,
       position = position_dodge(.5)
     ) +
-    geom_point(size = 5, fill = "white", position = position_dodge(.5)) +
+    geom_point(size = 5, position = position_dodge(.5)) +
     scale_y_continuous(
       limits = c(0, 1),
       name = "Proportion voting for Abrams"
     ) +
     scale_x_discrete(
-      labels = c("Exit Polls", "Known", "BISG", "CVAP"),
+      labels = c("Exit\npolls", "Known", "BISG", "CVAP"),
       name = "Source of turnout by race"
     ) +
     scale_shape_manual(
-      values = c(22, 4, 21),
+      values = c(22, 24, 21),
       labels = c("Exit polls", "Iterative EI", "RxC EI")
     ) +
+    scale_fill_brewer(type = "qual") +
+    guides(fill = "none") +
     facet_grid(. ~ race) +
     plot_theme +
     theme(
@@ -79,4 +85,4 @@ all_ei %>%
       legend.title = element_blank(),
       legend.text = element_text(size = 20)
     )
-ggsave("ei_results.pdf", units = "in", height = 13, width = 16)
+ggsave("ei_results.pdf", units = "in", height = 10, width = 16)
