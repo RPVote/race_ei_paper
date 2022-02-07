@@ -4,6 +4,7 @@
  
 suppressPackageStartupMessages({
   library(tidyverse)
+  library(ggtext)
   library(sf)
 })
 
@@ -48,76 +49,51 @@ county_turnout <- readRDS(ga_agg_path) %>%
     cvap = sum(cvap_total), 
     votes = sum(total_votes),
     prp_bla = mean(bla_true_prop),
-    prp_whi = mean(whi_true_prop)
+    prp_whi = mean(whi_true_prop),
+    n_prec = n()
   ) %>%
   mutate(turnout = votes/cvap)
 
 all_ei_county <- all_ei_county %>%
   left_join(county_turnout) %>%
-  filter(cand == "abrams", race_type %in% c("bisg", "cvap"), type == "rxc")
+  filter(cand == "abrams", race_type %in% c("bisg", "cvap"))
 
 all_ei_county <- all_ei_county %>%
-  select(race, county, mean, race_type)  %>%
-  pivot_wider(id_cols = c("race", "county"), names_from = "race_type", values_from = "mean") %>%
+  select(race, county, mean, race_type, type)  %>%
+  pivot_wider(id_cols = c("race", "county", "type"), names_from = "race_type", values_from = "mean") %>%
   mutate(diff = bisg-cvap) %>%
   select(-bisg, -cvap) %>%
   right_join(all_ei_county)
 
 all_ei_county %>%
   filter(race_type == "cvap") %>%
-  ggplot(aes(x = prp_whi, y = diff)) +
-    geom_point() + 
-    geom_hline(yintercept = 0) +
-    facet_grid(. ~ race) 
-
-rankdata <- all_ei_county %>%
-  filter(cand == "abrams", type == "rxc") %>%
-  select(-cand) %>%
-  pivot_wider(
-    id_cols = c("race", "county", "type"),
-    names_from = "race_type",
-    values_from = c("mean", "ci_95_lower", "ci_95_upper")
+  mutate(
+    race = case_when(
+      race == "whi" ~ "White",
+      race == "bla" ~ "Black",
+      race == "his" ~ "Hispanic",
+      race == "oth" ~ "Other"
+    ), 
+    race = ordered(race, levels = c("White", "Black", "Hispanic", "Other")),
+    type = ifelse(type == "iter", "Iterative EI", "RxC EI")
   ) %>%
-  group_by(type, race) %>%
-  arrange(mean_bisg, .by_group = TRUE) %>%
-  filter(!(is.na(mean_bisg))) %>%
-  mutate(rank = n():1) %>%
-  ungroup() %>%
-  select(race, county, type, rank)
-
-plotdata <- all_ei_county %>%
-  filter(cand == "abrams", type == "rxc") %>%
-  select(-cand) %>%
-  left_join(rankdata) %>%
-  filter(!(is.na(mean)))
-
-plotdata %>%
-  filter(race_type != "true") %>%
-  mutate(line = ifelse(race_type == "bisg", mean, NA)) %>%
-  mutate(race = case_when(
-    race == "whi" ~ "White",
-    race == "bla" ~ "Black",
-    race == "his" ~ "Hisp.",
-    race == "oth" ~ "Other"
-  )) %>%
-  mutate(race = ordered(race, levels = c("White", "Black", "Hisp.", "Other"))) %>%
-  ggplot(aes(x = rank, y = mean, shape = race_type)) +
-    geom_line(aes(y = ci_95_lower, linetype = race_type)) +
-    geom_line(aes(y = ci_95_upper, linetype = race_type)) +
-   # geom_line(aes(y = line)) +
-  #  geom_point() +
-    scale_y_continuous(
-      limits = c(0, 1)
-    ) +
-    scale_x_reverse() +
-    facet_grid(race ~ .) +
+  ggplot(aes(x = turnout, y = diff)) +
+    geom_point(aes(size = votes/100), alpha = alpha) + 
+    geom_smooth(method = 'lm', color = 'black') +
+    geom_hline(yintercept = 0, color = 'red', linetype = "dashed") +
+    facet_grid(type ~ race) +
+    ylab("Difference in predicted share voting for Abrams<br>(BISG - CVAP)") + 
+    xlab("Turnout as proportion of CVAP") +
+    coord_cartesian(ylim = c(-.5, .5)) +
+    scale_size_continuous(name = "Number of voters (100s)") + 
     plot_theme +
     theme(
       strip.text = element_text(size = 20),
       strip.background = element_rect(fill = "white"),
       axis.text.x = element_text(size = 16),
-      legend.title = element_blank(),
-      legend.text = element_text(size = 20)
+      legend.title = element_text(size = 20),
+      legend.text = element_text(size = 20),
+      axis.title.y = element_markdown(),
+      panel.spacing = unit(.15, "in")
     )
-
-
+ggsave("figure4.pdf", height = 10, width = 16)

@@ -132,7 +132,7 @@ run_eis <- function(data, race_colnames, par_compute, seed) {
 county_out_path <- "../../data/county_ei"
 
 purrr::walk(
-  44:length(counties),
+  132:length(counties),
   function(cc) {
     message(cc)
     c <- counties[cc]
