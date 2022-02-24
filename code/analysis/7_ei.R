@@ -47,7 +47,8 @@ results <- results %>%
     oth_true_prop = oth_true_prop + asi_true_prop,
     oth_bisg_prop = oth_bisg_prop + asi_bisg_prop,
     oth_2018_cvap_ext_prop = oth_2018_cvap_ext_prop + asi_2018_cvap_ext_prop,
-    oth_2018_cvap_int_prop = oth_2018_cvap_int_prop + asi_2018_cvap_int_prop
+    oth_2018_cvap_int_prop = oth_2018_cvap_int_prop + asi_2018_cvap_int_prop,
+    total_votes = whi_true_total + bla_true_total + his_true_total + asi_true_total + oth_true_total
   )
 
 if (verbose) {
@@ -65,10 +66,10 @@ race_bisg <- c("whi_bisg_prop",
                "bla_bisg_prop",
                "his_bisg_prop",
                "oth_bisg_prop")
-race_cvap <- c("whi_2018_cvap_int_prop",
-               "bla_2018_cvap_int_prop",
-               "his_2018_cvap_int_prop",
-               "oth_2018_cvap_int_prop")
+race_cvap <- c("whi_2018_cvap_ext_prop",
+               "bla_2018_cvap_ext_prop",
+               "his_2018_cvap_ext_prop",
+               "oth_2018_cvap_ext_prop")
 
 # Candidate vectors
 cand_cols <- c("abrams_prop", "kemp_prop")
@@ -86,7 +87,7 @@ results %>%
   select(any_of(race_true)) %>%
   rowSums()
 
-results %>%
+results %>%s
   select(any_of(race_bisg)) %>%
   rowSums()
 
@@ -186,7 +187,7 @@ ei_iter_cvap <- eiCompare::ei_iter(
   plots = FALSE,
   par_compute = FALSE,
   name = "iter_cvap",
-  seed = 12289115)
+  seed = 435575087)
 
 # CVAP: RxC EI
 ei_rxc_cvap <- eiCompare::ei_rxc(

@@ -54,11 +54,11 @@ race_ests <- race_ests %>%
 
     # Note, we use VAP to estimate segregation because it reflects neighborhood
     # segregation, rather than the turned out or voting-eligible population
-    whi_theil = whi_2010_vap_ext_prop*log(whi_2010_vap_ext_prop),
-    bla_theil = bla_2010_vap_ext_prop*log(bla_2010_vap_ext_prop),
-    his_theil = his_2010_vap_ext_prop*log(his_2010_vap_ext_prop),
-    asi_theil = asi_2010_vap_ext_prop*log(asi_2010_vap_ext_prop),
-    oth_theil = oth_2010_vap_ext_prop*log(oth_2010_vap_ext_prop),
+    whi_theil = whi_2018_cvap_ext_prop*log(whi_2018_cvap_ext_prop),
+    bla_theil = bla_2018_cvap_ext_prop*log(bla_2018_cvap_ext_prop),
+    his_theil = his_2018_cvap_ext_prop*log(his_2018_cvap_ext_prop),
+    asi_theil = asi_2018_cvap_ext_prop*log(asi_2018_cvap_ext_prop),
+    oth_theil = oth_2018_cvap_ext_prop*log(oth_2018_cvap_ext_prop),
 
     whi_theil = ifelse(is.na(whi_theil) | whi_theil == -Inf, 0, whi_theil),
     bla_theil = ifelse(is.na(bla_theil) | bla_theil == -Inf, 0, bla_theil),

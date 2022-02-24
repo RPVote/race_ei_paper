@@ -17,7 +17,7 @@ ga_agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
 ei_results_path <- file.path(base_path, "ga_2018_ei_results.csv")
 # Turn on for parallel computing
 par_compute <- TRUE
-
+seed <- 101010
 if (verbose) {
   message("======================================================")
   message("Beginning script. Reading in precinct results...")
@@ -35,7 +35,8 @@ results <- results %>%
     oth_true_prop = oth_true_prop + asi_true_prop,
     oth_bisg_prop = oth_bisg_prop + asi_bisg_prop,
     oth_2018_cvap_ext_prop = oth_2018_cvap_ext_prop + asi_2018_cvap_ext_prop,
-    oth_2018_cvap_int_prop = oth_2018_cvap_int_prop + asi_2018_cvap_int_prop
+    oth_2018_cvap_int_prop = oth_2018_cvap_int_prop + asi_2018_cvap_int_prop,
+    total_votes = whi_true_total + bla_true_total + his_true_total + asi_true_total
   )
 
 # Make abrams + kemp == 1 
@@ -132,7 +133,7 @@ run_eis <- function(data, race_colnames, par_compute, seed) {
 county_out_path <- "../../data/county_ei"
 
 purrr::walk(
-  132:length(counties),
+  1:length(counties),
   function(cc) {
     message(cc)
     c <- counties[cc]
@@ -164,5 +165,133 @@ purrr::walk(
       )
     )
     gc()
+  }
+)
+
+#' Now try again for the ones that didn't work
+files <- list.files(county_out_path)
+all_ei_county <- map_dfr(
+  files,
+  function(f) { readRDS(file.path(county_out_path, f)) }
+) %>%
+  as_tibble() %>% 
+  mutate(cand = gsub("_prop", "", cand),
+         race = str_sub(race, 1, 3))
+
+full_set <- expand.grid(
+  c("abrams", "kemp"),
+  c("whi", "bla", "his", "oth"),
+  c("iter", "rxc"),
+  c("true", "bisg", "cvap")
+)
+names(full_set) <- c("cand", "race", "type", "race_type")
+
+to_retry <- map_dfr(
+  counties,
+  function(cc) {
+    completed_eis <- all_ei_county %>%
+      filter(county == cc) %>%
+      select("cand", "race", "type", "race_type")
+    x <- rbind(full_set, completed_eis)
+    unfinished <- x[! duplicated(x, fromLast=TRUE) & seq(nrow(x)) <= nrow(full_set), ]
+    if (nrow(unfinished) > 0) {
+      unfinished$county <- cc
+      return(unfinished)
+    } else {
+      return()
+    }
+  }
+)
+to_retry <- to_retry %>%
+  select(county, type, race_type) %>%
+  distinct()
+
+walk(
+  1:nrow(to_retry),
+  function(ii) {
+    race_type = as.character(to_retry[ii, "race_type"])
+    type = as.character(to_retry[ii, "type"])
+    cc = as.character(to_retry[ii, "county"])
+    message(paste(cc, race_type, type, sep = ", "))
+    
+    data <- results %>% 
+      filter(county == cc) %>%
+      as_tibble() %>%
+      select(-geometry)
+    
+    if (cc == "Taliaferro") {
+      message("Skipping ", cc)
+      return()
+    } else if (nrow(data) <= 1) {
+      message(cc, " has only 1 precinct. Skipping...")
+      return()  
+    } else {
+      
+      if (race_type == "cvap") {
+        race_colnames <- race_cvap
+      } else if (race_type == "bisg") {
+        race_colnames <- race_bisg
+      } else {
+        race_colnames <- race_true
+      }
+
+      if(type == "iter") {
+        tryCatch(
+          {
+            res <- withTimeout(eiCompare::ei_iter(
+              data = data,
+              cand_cols = cand_cols,
+              race_cols = race_colnames,
+              totals_col = "total_votes",
+              verbose = FALSE,
+              plots = FALSE,
+              par_compute = FALSE,
+              name = "",
+              seed = seed
+            ), timeout = 60)
+            res$estimates$type <- "iter"
+          }, error = function(cond) {
+            if (grepl("reached elapsed time limit|reached CPU time limit", cond$message)) {
+              message("Timed out!")
+              return()
+              # we reached timeout, apply some alternative method or do something else
+            } else {
+              message("Broke... skipping")
+              return()
+            }
+          }
+        )  
+      } else {
+        tryCatch(
+          {
+            res <- eiCompare::ei_rxc(
+              data = data,
+              cand_cols = cand_cols,
+              race_cols = race_colnames,
+              totals_col = "total_votes",
+              verbose = FALSE,
+              ntunes = 4,
+              samples = 5000,
+              thin = 2,
+              n_chains = 2,
+              par_compute = FALSE,
+              seed = seed
+            )
+            res$estimates$type <- "rxc"
+          }, error = function(cond) {
+            message("Broke... skipping")
+            return()
+          }
+        )
+       }
+      tryCatch({
+        res$estimates$county <- cc
+        res$estimates$race_type <- race_type
+        saveRDS(
+          res$estimates,
+          file.path(county_out_path, paste0("ei_", cc, "_", type, "_", race_type, ".rds"))
+        ) 
+      }, error = function(cond) {return()})
+    }
   }
 )
