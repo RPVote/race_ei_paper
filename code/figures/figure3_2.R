@@ -33,6 +33,8 @@ county_cvap_total <- readRDS(agg_path) %>%
   select(-geometry) %>%
   mutate(county = )
 
+all_ei <- readRDS("../../data/ei_results_all.rds")
+
 all_ei <- all_ei %>%
   mutate(cand = gsub("_prop", "", cand),
          race = str_sub(race, 1, 3),

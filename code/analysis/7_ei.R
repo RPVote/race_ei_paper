@@ -66,10 +66,10 @@ race_bisg <- c("whi_bisg_prop",
                "bla_bisg_prop",
                "his_bisg_prop",
                "oth_bisg_prop")
-race_cvap <- c("whi_2018_cvap_ext_prop",
-               "bla_2018_cvap_ext_prop",
-               "his_2018_cvap_ext_prop",
-               "oth_2018_cvap_ext_prop")
+race_cvap <- c("whi_2018_cvap_int_prop",
+               "bla_2018_cvap_int_prop",
+               "his_2018_cvap_int_prop",
+               "oth_2018_cvap_int_prop")
 
 # Candidate vectors
 cand_cols <- c("abrams_prop", "kemp_prop")
@@ -87,7 +87,7 @@ results %>%
   select(any_of(race_true)) %>%
   rowSums()
 
-results %>%s
+results %>%
   select(any_of(race_bisg)) %>%
   rowSums()
 
@@ -177,6 +177,7 @@ if (verbose) {
   message("Iterative EI using CVAP input...")
 }
 
+temp <- results %>% sample_n(1500)
 # CVAP: Iterative EI
 ei_iter_cvap <- eiCompare::ei_iter(
   data = results,

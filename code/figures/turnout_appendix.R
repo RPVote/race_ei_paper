@@ -130,6 +130,11 @@ county_turnout <- readRDS(ga_agg_path) %>%
 county_turnout <- county_turnout %>%
   left_join(df_ga_cvap) %>%
   mutate(
+    whi_cvap_prp = whi_cvap_total / tot_cvap_total,
+    bla_cvap_prp = bla_cvap_total / tot_cvap_total,
+    his_cvap_prp = his_cvap_total / tot_cvap_total,
+    oth_cvap_prp = oth_cvap_total / tot_cvap_total,
+    
     tot_turnout_prp = tot_turnout / tot_cvap_total,
     
     whi_turnout_prp = ifelse(whi_cvap_total == 0, 0, whi_turnout/whi_cvap_total),
@@ -142,10 +147,15 @@ county_turnout <- county_turnout %>%
     his_turnout_prp = ifelse(his_cvap_total == 0, 0, his_turnout/his_cvap_total),
     oth_turnout_prp = ifelse(oth_cvap_total == 0, 0, oth_turnout/oth_cvap_total),
     
-    whi_turnout_rat = ifelse(tot_turnout_prp == 0, 0, whi_turnout_prp/tot_turnout_prp),
-    bla_turnout_rat = ifelse(tot_turnout_prp == 0, 0, bla_turnout_prp/tot_turnout_prp),
-    his_turnout_rat = ifelse(tot_turnout_prp == 0, 0, his_turnout_prp/tot_turnout_prp),
-    oth_turnout_rat = ifelse(tot_turnout_prp == 0, 0, oth_turnout_prp/tot_turnout_prp)
+    whi_turnout_rat = ifelse(tot_turnout_prp == 0, 0, whi_turnout_prp/whi_cvap_prp),
+    bla_turnout_rat = ifelse(tot_turnout_prp == 0, 0, bla_turnout_prp/bla_cvap_prp),
+    his_turnout_rat = ifelse(tot_turnout_prp == 0, 0, his_turnout_prp/his_cvap_prp),
+    oth_turnout_rat = ifelse(tot_turnout_prp == 0, 0, oth_turnout_prp/oth_cvap_prp),
+    
+    whi_turnout_rat = whi_turnout_prp-whi_cvap_prp,
+    bla_turnout_rat = bla_turnout_prp-bla_cvap_prp,
+    his_turnout_rat = his_turnout_prp-his_cvap_prp,
+    oth_turnout_rat = oth_turnout_prp-oth_cvap_prp
   ) %>%
   select(county, ends_with("turnout_prp"), ends_with("rat"), ends_with("turnout"), ends_with("total"), n_prec)
 
@@ -301,12 +311,12 @@ all_ei_county_appendix %>%
   geom_hline(yintercept = 0, color = 'red', linetype = "dashed") +
   geom_label(
     aes(x = -Inf, y = -Inf, vjust = 0, hjust = 0, label = text),
-    size = 5,
+    size = 4,
     label.r = unit(0, "pt")
   ) +
   facet_grid(type ~ race, scales = "free") +
   ylab("Difference in predicted share voting for Abrams<br>(BISG - CVAP)") + 
-  xlab("Ratio ") +
+  xlab("Difference between race-specific turnout and CVAP population share") +
   coord_cartesian(ylim = c(-.5, .5)) +
   scale_size_continuous(name = "Number of precincts") + 
   plot_theme +
@@ -554,8 +564,37 @@ all_ei_county_prec %>%
 ggsave("figure4_nprec.pdf", height = 10, width = 16)
 
 
+# Check difference between the full and the successfully estimated datasets
+full_precinct_counts <- race_ests %>% 
+  mutate(county = gsub("^(.*?),.*", "\\1", precinct_id_2018)) %>% 
+  count(county)
 
+res <- all_ei_county %>%
+  filter(race == "whi", type == "rxc", race_type == "bisg") %>%
+  select(county, n_prec) %>%
+  rename("n_bisg_rxc" = "n_prec") %>%
+  right_join(full_precinct_counts) %>%
+  mutate(n_bisg_rxc = ifelse(is.na(n_bisg_rxc), 0, n_bisg_rxc))
 
+res <- all_ei_county %>%
+  filter(race == "whi", type == "iter", race_type == "bisg") %>%
+  select(county, n_prec) %>%
+  rename("n_bisg_iter" = "n_prec") %>%
+  right_join(res) %>%
+  mutate(n_bisg_iter = ifelse(is.na(n_bisg_iter), 0, n_bisg_iter))
 
+res <- all_ei_county %>%
+  filter(race == "whi", type == "rxc", race_type == "cvap") %>%
+  select(county, n_prec) %>%
+  rename("n_cvap_rxc" = "n_prec") %>%
+  right_join(res) %>%
+  mutate(n_cvap_rxc = ifelse(is.na(n_cvap_rxc), 0, n_cvap_rxc))
+
+res <- all_ei_county %>%
+  filter(race == "whi", type == "iter", race_type == "cvap") %>%
+  select(county, n_prec) %>%
+  rename("n_cvap_iter" = "n_prec") %>%
+  right_join(res) %>%
+  mutate(n_cvap_iter = ifelse(is.na(n_cvap_iter), 0, n_cvap_iter))
 
 

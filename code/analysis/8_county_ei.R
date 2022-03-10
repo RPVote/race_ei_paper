@@ -2,6 +2,7 @@ suppressWarnings(suppressMessages({
   library(eiCompare)
   library(readr)
   library(tidyverse)
+  library(R.utils)
 }))
 
 # Preamble: Adjust these settings according to your use case
@@ -56,10 +57,10 @@ race_bisg <- c("whi_bisg_prop",
                "bla_bisg_prop",
                "his_bisg_prop",
                "oth_bisg_prop")
-race_cvap <- c("whi_2018_cvap_int_prop",
-               "bla_2018_cvap_int_prop",
-               "his_2018_cvap_int_prop",
-               "oth_2018_cvap_int_prop")
+race_cvap <- c("whi_2018_cvap_ext_prop",
+               "bla_2018_cvap_ext_prop",
+               "his_2018_cvap_ext_prop",
+               "oth_2018_cvap_ext_prop")
 
 # Candidate vector
 cand_cols <- c("abrams_prop", "kemp_prop")
@@ -69,6 +70,8 @@ race_cols <- list("true" = race_true, "bisg" = race_bisg, "cvap" = race_cvap)
 
 # Counties to loop over
 counties <- sort(unique(results$county))
+
+county_out_path <- "../../data/county_ei"
 
 #' run_eis
 #'
@@ -129,8 +132,6 @@ run_eis <- function(data, race_colnames, par_compute, seed) {
     return(ei_iter$estimates)
   }
 }
-
-county_out_path <- "../../data/county_ei"
 
 purrr::walk(
   1:length(counties),
