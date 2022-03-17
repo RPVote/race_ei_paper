@@ -147,15 +147,15 @@ county_turnout <- county_turnout %>%
     his_turnout_prp = ifelse(his_cvap_total == 0, 0, his_turnout/his_cvap_total),
     oth_turnout_prp = ifelse(oth_cvap_total == 0, 0, oth_turnout/oth_cvap_total),
     
-    whi_turnout_rat = ifelse(tot_turnout_prp == 0, 0, whi_turnout_prp/whi_cvap_prp),
-    bla_turnout_rat = ifelse(tot_turnout_prp == 0, 0, bla_turnout_prp/bla_cvap_prp),
-    his_turnout_rat = ifelse(tot_turnout_prp == 0, 0, his_turnout_prp/his_cvap_prp),
-    oth_turnout_rat = ifelse(tot_turnout_prp == 0, 0, oth_turnout_prp/oth_cvap_prp),
+    whi_turnout_prp = min(whi_turnout_prp, 1),
+    bla_turnout_prp = min(bla_turnout_prp, 1),
+    his_turnout_prp = min(his_turnout_prp, 1),
+    oth_turnout_prp = min(oth_turnout_prp, 1),
     
-    whi_turnout_rat = whi_turnout_prp-whi_cvap_prp,
-    bla_turnout_rat = bla_turnout_prp-bla_cvap_prp,
-    his_turnout_rat = his_turnout_prp-his_cvap_prp,
-    oth_turnout_rat = oth_turnout_prp-oth_cvap_prp
+    whi_turnout_diff = whi_turnout_prp-whi_cvap_prp,
+    bla_turnout_diff = bla_turnout_prp-bla_cvap_prp,
+    his_turnout_diff = his_turnout_prp-his_cvap_prp,
+    oth_turnout_diff = oth_turnout_prp-oth_cvap_prp
   ) %>%
   select(county, ends_with("turnout_prp"), ends_with("rat"), ends_with("turnout"), ends_with("total"), n_prec)
 
