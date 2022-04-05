@@ -13,6 +13,9 @@ suppressWarnings(suppressMessages({
   library(tidyverse)
 }))
 
+# Set working directory to folder in which this file is located
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
 # Base path: enter the path to the folder where the voter file can be found
 base_path <- "../../data"
 vf_path <- file.path(base_path, "ga_voter_file_2018_final.csv")
