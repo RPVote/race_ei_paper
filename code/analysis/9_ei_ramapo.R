@@ -67,9 +67,9 @@ ei_rxc_cvap <- eiCompare::ei_rxc(
   totals_col = totals_col,
   verbose = TRUE,
   ntunes = 10,
-  samples = 50000,
+  samples = 100000,
   thin = 5,
-  n_chains = 5,
+  n_chains = 10,
   name = "rxc_true",
   seed = 76689115)
 
@@ -103,9 +103,9 @@ ei_rxc_bisg <- eiCompare::ei_rxc(
   totals_col = totals_col,
   verbose = TRUE,
   ntunes = 10,
-  samples = 50000,
+  samples = 100000,
   thin = 5,
-  n_chains = 5,
+  n_chains = 10,
   name = "rxc_true",
   seed = 76689115)
 

@@ -69,7 +69,7 @@ plot <- all_ei %>%
       values = c(22, 24, 21),
       labels = c("Iterative EI", "RxC EI")
     ) +
-    scale_fill_manual(bisg = "#FCC086", cvap = "#FDFF99") +
+    scale_fill_manual(values = list(bisg = "#FCC086", cvap = "#FDFF99")) +
     guides(fill = "none") +
     facet_grid(. ~ race) +
     plot_theme +
