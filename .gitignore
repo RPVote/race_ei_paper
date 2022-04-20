@@ -21,6 +21,7 @@ data/
 # R data files
 *.rds
 *.rda
+*.csv
 
 # User-specific files
 .Ruserdata
