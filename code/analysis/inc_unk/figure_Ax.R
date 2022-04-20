@@ -27,14 +27,20 @@ plot_theme <-
 # Set working directory to folder in which this file is located
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-base_path <- "../../data"
+base_path <- "../../../data"
 agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
 county_cvap_total <- readRDS(agg_path) %>%
   select(-geometry)
 
-all_ei <- readRDS("../../data/ei_results_all.rds")
+all_ei <- readRDS("../../../data/ei_results_all.rds")
 
-all_ei <- all_ei %>%
+all_ei_unk <- readRDS("ei_results_unk.rds")
+
+all_ei_bisg <- all_ei %>%
+  filter(race_type == 'bisg') %>%
+  rbind(all_ei_unk)
+
+all_ei_bisg <- all_ei_bisg %>%
   mutate(cand = gsub("_prop", "", cand),
          race = str_sub(race, 1, 3),
          jitter = case_when(
@@ -43,7 +49,7 @@ all_ei <- all_ei %>%
            ei_type == "exit_polls" ~ 0
          )) 
 
-all_ei %>%
+all_ei_bisg %>%
   filter(cand == "abrams") %>%
   mutate(
     race = case_when(
@@ -53,7 +59,7 @@ all_ei %>%
       race == "oth" ~ "Other"
     ),
     race = ordered(race, levels = c("White", "Black", "Hispanic", "Other")),
-    race_type = ordered(race_type, levels = c("exit_polls", "true", "bisg", "cvap"))
+    race_type = ordered(race_type, levels = c("bisg", "bisg_unk"))
   ) %>%
   ggplot(aes(x = race_type, y = mean, shape = ei_type, fill = race_type)) +
     geom_errorbar(
@@ -68,14 +74,14 @@ all_ei %>%
       name = "Proportion voting for Abrams"
     ) +
     scale_x_discrete(
-      labels = c("Exit\npolls", "Known", "BISG", "CVAP"),
-      name = "Source of turnout by race"
+      labels = c("Without unk.", "With unk."),
+      name = "BISG type"
     ) +
     scale_shape_manual(
       values = c(22, 24, 21),
-      labels = c("Exit polls", "Iterative EI", "RxC EI")
+      labels = c("Iterative EI", "RxC EI")
     ) +
-    scale_fill_brewer(type = "qual") +
+    scale_fill_manual(values = c("black", "white")) +
     guides(fill = "none") +
     facet_grid(. ~ race) +
     plot_theme +
@@ -86,4 +92,4 @@ all_ei %>%
       legend.title = element_blank(),
       legend.text = element_text(size = 20)
     )
-ggsave("ei_results.pdf", units = "in", height = 10, width = 16)
+ggsave("ei_results_unk.pdf", units = "in", height = 6, width = 16)

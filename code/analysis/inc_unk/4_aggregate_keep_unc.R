@@ -17,14 +17,18 @@ suppressWarnings(suppressMessages({
   library(tidyverse)
 }))
 
+# Set working directory to folder in which this file is located
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
 # Preamble: Adjust these settings according to your use case
 # Turn verbosity on or off
 verbose <- TRUE
 # Set the base path: where all data files are located
-base_path <- "../../data"
+base_path <- "../../../data"
 ga_precincts_2018_path <- file.path(base_path, "ga_2018_election_precincts")
 vf_path <- file.path(base_path, "ga_voter_file_2018_final.csv")
-agg_path <- file.path(base_path, "ga_2018_agg.csv")
+
+out_path <- file.path("ga_2018_agg_inc_unk.csv")
 
 if (verbose) {
   message("======================================================")
@@ -51,10 +55,7 @@ vf <- readr::read_csv(
     oth = readr::col_double())) %>%
   dplyr::filter(precinct_id_2018 != "Fulton,Sc17B")  
 
-rows <- nrow(vf)
-vf <- vf %>%
-  dplyr::filter(race != "U")
-(rows - nrow(vf))/rows
+# HERE IS WHERE UNK IS FILTERED IN MAIN ANALYSIS
 
 if (verbose) {
   message("Voter file read in.")
@@ -132,6 +133,64 @@ bisg <-
 # Bind all self-reported/BISG results together
 agg <- dplyr::bind_cols(self_reported, bisg[, -1])
 
+if (verbose){
+  message("Now add in election results (This code comes from the CVAP script")
+}
+
+sf_precinct_path <- file.path(
+  base_path,
+  "ga_precinct_shapefile/2018Precincts.shp"
+)
+
+sf_precincts <- sf::read_sf(sf_precinct_path) %>%
+  dplyr::select(loc_prec,
+                G18DGOV,
+                G18RGOV,
+                G18LGOV) %>%
+  dplyr::mutate(total_votes = G18DGOV + G18RGOV + G18LGOV) %>%
+  dplyr::mutate(
+    abrams_prop = G18DGOV / total_votes,
+    kemp_prop = G18RGOV / total_votes,
+    metz_prop = G18LGOV / total_votes) %>%
+  dplyr::rename(precinct_id_2018 = loc_prec) %>%
+  dplyr::select(precinct_id_2018,
+                abrams_prop,
+                kemp_prop,
+                metz_prop,
+                total_votes)
+
+#' Patriots park appears split in two in the shapefile
+#' sf_precincts %>%
+#'   mutate("is_duped" = precinct_id_2018 == "Columbia,Patriots Park") %>%
+#'   ggplot() +
+#'     geom_sf(aes(fill = is_duped)) +
+#'     xlim(-82.4, -82) +
+#'     ylim(33.5, 33.6)
+#'
+
+# This code combines them
+patpark_stats <- sf_precincts %>%
+  dplyr::filter(precinct_id_2018 == "Columbia,Patriots Park") %>%
+  dplyr::as_tibble() %>%
+  select(-geometry) %>%
+  distinct()
+
+suppressMessages({
+  sf_patpark_combined <- sf_precincts %>%
+    dplyr::filter(precinct_id_2018 == "Columbia,Patriots Park") %>%
+    dplyr::group_by(precinct_id_2018) %>%
+    dplyr::summarize(geometry = sf::st_union(geometry)) %>%
+    inner_join(patpark_stats)
+})
+sf_precincts <- sf_precincts %>%
+  dplyr::filter(precinct_id_2018 != "Columbia,Patriots Park") %>%
+  rbind(sf_patpark_combined) %>%
+  as_tibble() %>%
+  select(-geometry)
+
+agg <- agg %>%
+  dplyr::left_join(sf_precincts, by = "precinct_id_2018")
+
 if (verbose) {
   message("Aggregation complete.")
   message("======================================================")
@@ -142,7 +201,7 @@ if (verbose) {
   message("Writing aggregation file...")
 }
 
-readr::write_csv(agg, agg_path)
+readr::write_csv(agg, out_path)
 
 if (verbose) {
   message("Aggregation file written. Script complete.")
