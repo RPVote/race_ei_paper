@@ -1,139 +1,200 @@
 #!/usr/bin/env Rscript
-#' Generates Figure 1 for "Comparing BISG to CVAP Estimates in Racially
+#' Generates Figure 2 for "Comparing BISG to CVAP Estimates in Racially
 #' Polarized Voting Analysis" by Collingwood et al.
 #'
-#' This script calculates and produces the ROC curves depicted in Figure 1
-#' of the paper.
+#' This script calculates and produces the scatter comparisons between BISG,
+#' CVAP, and self-reported race across racial groups.
 
-# Import packages
+# Import relevant libraries
 suppressWarnings(suppressMessages({
-  library(patchwork)
-  library(readr)
-  library(ROCR)
   library(tidyverse)
+  library(patchwork)
 }))
 
 # Set working directory to folder in which this file is located
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-# Base path: enter the path to the folder where the voter file can be found
+# Turn verbosity on or off
+verbose <- TRUE
+# Set the base path: where all data files are located
 base_path <- "../../data"
-vf_path <- file.path(base_path, "ga_voter_file_2018_final.csv")
-
-# Import voter file (filter out one precinct which is empty)
-vf <- readr::read_csv(
-  vf_path,
-  col_types = readr::cols(
-    .default = readr::col_character(),
-    registration_number = readr::col_double(),
-    birthyear = readr::col_double(),
-    date_registration = readr::col_date(),
-    date_added = readr::col_date(),
-    date_changed = readr::col_date(),
-    date_last_contact = readr::col_date(),
-    whi = readr::col_double(),
-    bla = readr::col_double(),
-    his = readr::col_double(),
-    asi = readr::col_double(),
-    oth = readr::col_double())) %>%
-  dplyr::filter(precinct_id_2018 != "Fulton,Sc17B")
-# Filter out unknown voters
-vf <- dplyr::filter(vf, race != "U")
-# Select probability and race columns, and add classification labels
-vf <- vf %>%
-  dplyr::select(race, whi, bla) %>%
-  dplyr::rename(
-    whi_pred = whi,
-    bla_pred = bla) %>%
-  dplyr::mutate(
-    whi = as.integer(race == "WH"),
-    bla = as.integer(race == "BH"))
-
-# Calculate FPR, TPR, and AUC for white predictions
-predictions_whi <- ROCR::prediction(vf$whi_pred, vf$whi)
-performance_whi <- ROCR::performance(predictions_whi, "tpr", "fpr")
-roc_whi <- tibble::tibble(
-  fpr = attributes(performance_whi)$x.values[[1]],
-  tpr = attributes(performance_whi)$y.values[[1]])
-auc_whi <- ROCR::performance(predictions_whi, measure = "auc")
-auc_whi <- attributes(auc_whi)$y.values[[1]]
-# Calculate FPR, TPR, and AUC for black predictions
-predictions_bla <- ROCR::prediction(vf$bla_pred, vf$bla)
-performance_bla <- ROCR::performance(predictions_bla, "tpr", "fpr")
-roc_bla <- tibble::tibble(
-  fpr = attributes(performance_bla)$x.values[[1]],
-  tpr = attributes(performance_bla)$y.values[[1]])
-auc_bla <- ROCR::performance(predictions_bla, measure = "auc")
-auc_bla <- attributes(auc_bla)$y.values[[1]]
-
-### Begin making Figure 1
-
-# Annotation for AUC in white voter plot
-whi_annotation <- tibble::tibble(
-  x = 0.83,
-  y = 0,
-  label = paste("AUC = ", round(auc_whi, 3)))
-# Annotation for AUC in black voter plot
-bla_annotation <- tibble::tibble(
-  x = 0.83,
-  y = 0,
-  label = paste("AUC = ", round(auc_bla, 3)))
+agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
+agg <- readRDS(agg_path)
 
 # Plot theme
+alpha <- 0.25
 plot_theme <-
   theme_bw() +
   theme(axis.text = element_text(size = 20),
-        axis.title = element_text(size = 23, face = "bold"),
+        axis.title = element_text(size = 22, face = "bold"),
         axis.title.x = element_text(margin = margin(t = 20)),
         axis.title.y = element_text(margin = margin(r = 20)),
-        plot.title = element_text(size = 27, face = "bold", hjust = 0.5),
+        plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
+        plot.margin = unit(c(0, 20, 40, 0), "pt"),
         legend.position = "none")
 
-# Figure 1a: ROC curve for white voters
-whi_roc <- ggplot2::ggplot(
-  data = roc_whi, aes(x = fpr, y = tpr)) +
-  geom_line(color = "black", size = 2) +
+# White, BISG vs. CVAP
+plot_whi_bisg <-
+  ggplot(data = agg, aes(x = whi_true_prop, y = whi_bisg_prop)) +
+  geom_point(color = "black", alpha = alpha) +
   geom_abline(intercept = 0,
               slope = 1,
-              color = "grey",
+              color = "red",
               lwd = 1,
               linetype = "dashed") +
-  geom_label(data = whi_annotation,
-             aes(x = x, y = y, label = label),
-             color = "black",
-             size = 8,
-             fontface = "bold") +
   xlim(0, 1) + ylim(0, 1) +
-  xlab("False Positive Rate") +
-  ylab("True Positive Rate") +
-  ggtitle("White Voters") +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (BISG)") +
+  ggtitle("White, BISG") +
   plot_theme +
   coord_fixed()
 
-# Figure 1b: ROC curve for black voters
-bla_roc <- ggplot2::ggplot(
-  data = roc_bla, aes(x = fpr, y = tpr)) +
-  geom_line(color = "black", size = 2) +
+plot_whi_cvap <-
+  ggplot(data = agg, aes(x = whi_true_prop, y = whi_2018_cvap_ext_prop)) +
+  geom_point(color = "black", alpha = alpha) +
   geom_abline(intercept = 0,
               slope = 1,
-              color = "grey",
+              color = "red",
               lwd = 1,
               linetype = "dashed") +
-  geom_label(data = bla_annotation,
-             aes(x = x, y = y, label = label),
-             color = "black",
-             size = 8,
-             fontface = "bold") +
   xlim(0, 1) + ylim(0, 1) +
-  xlab("False Positive Rate") +
-  ylab("True Positive Rate") +
-  ggtitle("Black Voters") +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (CVAP)") +
+  ggtitle("White, CVAP") +
   plot_theme +
   coord_fixed()
 
-# Final plot
+# Black, BISG vs. CVAP
+plot_bla_bisg <-
+  ggplot(data = agg, aes(x = bla_true_prop, y = bla_bisg_prop)) +
+  geom_point(color = "black", alpha = alpha) +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red",
+              lwd = 1,
+              linetype = "dashed") +
+  xlim(0, 1) + ylim(0, 1) +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (BISG)") +
+  ggtitle("Black, BISG") +
+  plot_theme +
+  coord_fixed()
+
+plot_bla_cvap <-
+  ggplot(data = agg, aes(x = bla_true_prop, y = bla_2018_cvap_ext_prop)) +
+  geom_point(color = "black", alpha = alpha) +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red",
+              lwd = 1,
+              linetype = "dashed") +
+  xlim(0, 1) + ylim(0, 1) +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (CVAP)") +
+  ggtitle("Black, CVAP") +
+  plot_theme +
+  coord_fixed()
+
+# Hispanic/Latino, BISG vs. CVAP
+plot_his_bisg <-
+  ggplot(data = agg, aes(x = his_true_prop, y = his_bisg_prop)) +
+  geom_point(color = "black", alpha = alpha) +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red",
+              lwd = 1,
+              linetype = "dashed") +
+  xlim(0, 0.5) + ylim(0, 0.5) +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (BISG)") +
+  ggtitle("Hispanic/Latino, BISG") +
+  plot_theme +
+  coord_fixed()
+
+plot_his_cvap <-
+  ggplot(data = agg, aes(x = his_true_prop, y = his_2018_cvap_ext_prop)) +
+  geom_point(color = "black", alpha = alpha) +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red",
+              lwd = 1,
+              linetype = "dashed") +
+  xlim(0, 0.5) + ylim(0, 0.5) +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (CVAP)") +
+  ggtitle("Hispanic/Latino, CVAP") +
+  plot_theme +
+  coord_fixed()
+
+# Asian, BISG vs. CVAP
+plot_asi_bisg <-
+  ggplot(data = agg, aes(x = asi_true_prop, y = asi_bisg_prop)) +
+  geom_point(color = "black", alpha = alpha) +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red",
+              lwd = 1,
+              linetype = "dashed") +
+  xlim(0, 0.3) + ylim(0, 0.3) +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (BISG)") +
+  ggtitle("Asian/Pacific Islander, BISG") +
+  plot_theme +
+  coord_fixed()
+
+plot_asi_cvap <-
+  ggplot(data = agg, aes(x = asi_true_prop, y = asi_2018_cvap_ext_prop)) +
+  geom_point(color = "black", alpha = alpha) +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red",
+              lwd = 1,
+              linetype = "dashed") +
+  xlim(0, 0.3) + ylim(0, 0.3) +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (CVAP)") +
+  ggtitle("Asian/Pacific Islander, CVAP") +
+  plot_theme +
+  coord_fixed()
+
+# Other, BISG vs. CVAP
+plot_oth_bisg <-
+  ggplot(data = agg, aes(x = oth_true_prop, y = oth_bisg_prop)) +
+  geom_point(color = "black", alpha = alpha) +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red",
+              lwd = 1,
+              linetype = "dashed") +
+  xlim(0, 0.1) + ylim(0, 0.1) +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (BISG)") +
+  ggtitle("Other, BISG") +
+  plot_theme +
+  coord_fixed()
+
+plot_oth_cvap <-
+  ggplot(data = agg, aes(x = oth_true_prop, y = oth_2018_cvap_ext_prop)) +
+  geom_point(color = "black", alpha = alpha) +
+  geom_abline(intercept = 0,
+              slope = 1,
+              color = "red",
+              lwd = 1,
+              linetype = "dashed") +
+  xlim(0, 0.1) + ylim(0, 0.1) +
+  xlab("Observed Fraction (Self-Reported)") +
+  ylab("Estimated Fraction (CVAP)") +
+  ggtitle("Other, CVAP") +
+  plot_theme +
+  coord_fixed()
+
+# Create Figure 2: overall figure
 plot <-
-  whi_roc +
-  bla_roc +
-  plot_annotation(tag_levels = "a") & theme(plot.tag = element_text(size = 27))
-ggsave(filename = "Figure1.pdf", plot = plot, width = 16, height = 8)
+  plot_whi_bisg + plot_whi_cvap + theme(plot.margin = unit(c(0, 100, 0, 0), "pt")) +
+  plot_bla_bisg + plot_bla_cvap +
+  plot_his_bisg + plot_his_cvap + theme(plot.margin = unit(c(0, 100, 0, 0), "pt")) +
+  plot_asi_bisg + plot_asi_cvap +
+  plot_oth_bisg + plot_oth_cvap +
+  plot_layout(ncol = 4) +
+  plot_annotation(tag_levels = "a") & theme(plot.tag = element_text(size = 28, face = "bold"))
+ggsave(filename = "Figure1.pdf", plot = plot, width = 28, height = 21)

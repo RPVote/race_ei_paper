@@ -54,6 +54,7 @@ get_errors(race_ests$oth_true_prop, race_ests$oth_bisg_prop)
 
 # Get Brier Score
 briers <- race_ests %>%
+  as_tibble() %>%
   mutate(
     whi_dev2_bisg = (whi_true_prop - whi_bisg_prop)^2,
     bla_dev2_bisg = (bla_true_prop - bla_bisg_prop)^2,
@@ -82,4 +83,4 @@ briers <- race_ests %>%
     brier_cvap_w = 1/sum(log(n_voters))*sum(brier_cvap_w)
   )
 
-
+briers

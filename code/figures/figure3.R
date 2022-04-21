@@ -1,25 +1,16 @@
-#!/usr/bin/env Rscript
-#' Generates Figure 3 for "Comparing BISG to CVAP Estimates in Racially
-#' Polarized Voting Analysis" by Collingwood et al.
-#'
-#' This script calculates and produces the scatter comparisons between CVAP and
-#' self-reported race across racial groups.
+# This script produces figure X from the main text. 
 
 # Import relevant libraries
 suppressWarnings(suppressMessages({
+  library(eiCompare)
   library(readr)
   library(tidyverse)
-  library(patchwork)
 }))
 
+# Preamble: Adjust these settings according to your use case
 # Turn verbosity on or off
 verbose <- TRUE
-# Set working directory to folder in which this file is located
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 # Set the base path: where all data files are located
-base_path <- "../../data"
-agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
-race_ests <- readRDS(agg_path)
 
 # Plot theme
 alpha <- 0.25
@@ -29,94 +20,70 @@ plot_theme <-
         axis.title = element_text(size = 23, face = "bold"),
         axis.title.x = element_text(margin = margin(t = 20)),
         axis.title.y = element_text(margin = margin(r = 20)),
-        plot.title = element_text(size = 27, face = "bold", hjust = 0.5),
-        legend.position = "none")
+        plot.title = element_text(size = 27, face = "bold"),
+        legend.position = "bottom")
 
-plot_whi <-
-  ggplot(race_ests, aes(x = whi_true, y = whi_2018_cvap_ext_prop)) +
-  geom_point(color = 'black', alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "grey",
-              lwd = 1,
-              linetype = "dashed") +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  coord_fixed() +
-  xlim(0, 1) +
-  ylim(0, 1) +
-  ggtitle("White") +
-  plot_theme
 
-plot_bla <-
-  ggplot(race_ests, aes(x = bla_true, y = bla_2018_cvap_ext_prop)) +
-  geom_point(color = 'black', alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "grey",
-              lwd = 1,
-              linetype = "dashed") +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  coord_fixed() +
-  xlim(0, 1) +
-  ylim(0, 1) +
-  ggtitle("Black") +
-  plot_theme
+# Set working directory to folder in which this file is located
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-plot_his <-
-  ggplot(race_ests, aes(x = his_true, y = his_2018_cvap_ext_prop)) +
-  geom_point(color = 'black', alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "grey",
-              lwd = 1,
-              linetype = "dashed") +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  coord_fixed() +
-  xlim(0, 1) +
-  ylim(0, 1) +
-  ggtitle("Hispanic") +
-  plot_theme
+base_path <- "../../data"
+agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
+county_cvap_total <- readRDS(agg_path) %>%
+  select(-geometry)
 
-plot_asi <-
-  ggplot(race_ests, aes(x = asi_true, y = asi_2018_cvap_ext_prop)) +
-  geom_point(color = 'black', alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "grey",
-              lwd = 1,
-              linetype = "dashed") +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  coord_fixed() +
-  xlim(0, 1) +
-  ylim(0, 1) +
-  ggtitle("Asian") +
-  plot_theme
+all_ei <- readRDS("../../data/ei_results_all.rds")
 
-plot_oth <-
-  ggplot(race_ests, aes(x = oth_true, y = oth_2018_cvap_ext_prop)) +
-  geom_point(color = 'black', alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "grey",
-              lwd = 1,
-              linetype = "dashed") +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  coord_fixed() +
-  xlim(0, 1) +
-  ylim(0, 1) +
-  ggtitle("Other") +
-  plot_theme
+all_ei <- all_ei %>%
+  mutate(cand = gsub("_prop", "", cand),
+         race = str_sub(race, 1, 3),
+         jitter = case_when(
+           ei_type == "iter" ~ -.5,
+           ei_type == "rxc" ~ .5,
+           ei_type == "exit_polls" ~ 0
+         )) 
 
-plot <- plot_whi +
-  plot_bla +
-  plot_his +
-  plot_asi +
-  plot_oth +
-  plot_layout(nrow = 2, byrow = TRUE) +
-  plot_annotation(tag_levels = "a") & theme(plot.tag = element_text(size = 27))
-ggplot2::ggsave("Figure3.pdf", width=21, height=14, device="pdf")
+all_ei %>%
+  filter(cand == "abrams") %>%
+  mutate(
+    race = case_when(
+      race == "whi" ~ "White",
+      race == "bla" ~ "Black",
+      race == "his" ~ "Hispanic",
+      race == "oth" ~ "Other"
+    ),
+    race = ordered(race, levels = c("White", "Black", "Hispanic", "Other")),
+    race_type = ordered(race_type, levels = c("exit_polls", "true", "bisg", "cvap"))
+  ) %>%
+  ggplot(aes(x = race_type, y = mean, shape = ei_type, fill = race_type)) +
+    geom_errorbar(
+      aes(ymin = ci_95_lower, ymax = ci_95_upper),
+      width = 0,
+      size = 1,
+      position = position_dodge(.5)
+    ) +
+    geom_point(size = 5, position = position_dodge(.5)) +
+    scale_y_continuous(
+      limits = c(0, 1),
+      name = "Proportion voting for Abrams"
+    ) +
+    scale_x_discrete(
+      labels = c("Exit\npolls", "Known", "BISG", "CVAP"),
+      name = "Source of turnout by race"
+    ) +
+    scale_shape_manual(
+      values = c(22, 24, 21),
+      labels = c("Exit polls", "Iterative EI", "RxC EI")
+    ) +
+    scale_fill_brewer(type = "qual") +
+    guides(fill = "none") +
+    facet_grid(. ~ race) +
+    plot_theme +
+    theme(
+      strip.text = element_text(size = 20),
+      strip.background = element_rect(fill = "white"),
+      axis.text.x = element_text(size = 16),
+      legend.title = element_blank(),
+      legend.text = element_text(size = 20)
+    )
+ggsave("figure3.pdf", units = "in", height = 10, width = 16)

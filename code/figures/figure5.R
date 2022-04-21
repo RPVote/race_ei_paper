@@ -12,6 +12,9 @@ suppressWarnings(suppressMessages({
 verbose <- TRUE
 # Set the base path: where all data files are located
 
+# Set working directory to folder in which this file is located
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
 # Plot theme
 alpha <- 0.25
 plot_theme <-
@@ -23,11 +26,7 @@ plot_theme <-
         plot.title = element_text(size = 27, face = "bold"),
         legend.position = "bottom")
 
-
-# Set working directory to folder in which this file is located
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-
-results_path <- "~/data/voting/ersd_ei_results.rds"
+results_path <- "../../data/ersd_ei_results.rds"
 results <- readRDS(results_path)
 
 all_ei <- results %>%

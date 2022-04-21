@@ -95,4 +95,4 @@ all_ei_county_appendix %>%
     axis.title.y = element_markdown(),
     panel.spacing = unit(.15, "in")
   )
-ggsave("figure4_appendix.pdf", height = 10, width = 8)
+ggsave("figure_i1.pdf", height = 10, width = 8)
