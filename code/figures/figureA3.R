@@ -1,5 +1,5 @@
 #'
-#' This script generate appendix figure X from the main text
+#' This script generate figure A3 from the main text
 #'
 suppressPackageStartupMessages({
   library(tidyverse)

@@ -1,6 +1,5 @@
 #!/usr/bin/env Rscript
-#' Generates Figure 2 for "Comparing BISG to CVAP Estimates in Racially
-#' Polarized Voting Analysis" by Collingwood et al.
+#' Generates Figure 1
 #'
 #' This script calculates and produces the scatter comparisons between BISG,
 #' CVAP, and self-reported race across racial groups.

@@ -1,6 +1,5 @@
 #!/usr/bin/env Rscript
-#' Generates the numbers for table 1 of "Comparing BISG to CVAP Estimates in
-#' Racially Polarized Voting Analysis" by Collingwood et al.
+#' Generates the numbers for table 1
 #'
 #' This script calculates the RMSE and MAD for BISG and CVAP predictions of
 #' racial composition

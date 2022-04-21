@@ -1,4 +1,4 @@
-# This script produces figure X from the main text. 
+# This script produces figure 3 from the main text. 
 
 # Import relevant libraries
 suppressWarnings(suppressMessages({

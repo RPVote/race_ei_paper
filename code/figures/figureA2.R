@@ -1,6 +1,5 @@
 #!/usr/bin/env Rscript
-#' Generates Figure 1 for "Comparing BISG to CVAP Estimates in Racially
-#' Polarized Voting Analysis" by Collingwood et al.
+#' Generates Figure A2
 #'
 #' This script calculates and produces the ROC curves depicted in Figure 1
 #' of the paper.
