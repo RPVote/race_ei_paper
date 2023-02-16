@@ -33,7 +33,7 @@ fit_model <- function(df) {
 }
 
 all_ei_county_appendix <- all_ei_county %>%
-  filter(race_type == "cvap", race %in% c("whi", "bla")) %>%
+  filter(race_type == "cvap", race %in% c("whi", "bla", "his", "oth")) %>%
   group_by(race, type) %>%
   nest() %>%
   mutate(
@@ -81,7 +81,7 @@ all_ei_county_appendix %>%
   ) +
   facet_grid(type ~ race, scales = "free") +
   ylab("Difference in predicted share voting for Abrams<br>(BISG - CVAP)") + 
-  xlab("Difference between race-specific turnout<br> and CVAP population share") +
+  xlab("Race/ethnicity-specific turnout") +
   coord_cartesian(ylim = c(-.5, .5)) +
   scale_size_continuous(name = "Number of precincts") + 
   plot_theme +
@@ -95,4 +95,4 @@ all_ei_county_appendix %>%
     axis.title.y = element_markdown(),
     panel.spacing = unit(.15, "in")
   )
-ggsave("figure_i1.pdf", height = 10, width = 8)
+ggsave("figure_A3.pdf", height = 10, width = 16)

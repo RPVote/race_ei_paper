@@ -82,7 +82,7 @@ df_ga_cvap <- df_ga_cvap %>%
     whi_cvap_total = sum(WH),
     bla_cvap_total = sum(BL),
     his_cvap_total = sum(HL),
-    oth_cvap_total = sum(AS + AIAN + NHOPI + MULTI)
+    oth_cvap_total = tot_cvap_total - whi_cvap_total - bla_cvap_total - his_cvap_total
   )
 
 # Now finally convert county fips to county name for matching
@@ -94,7 +94,6 @@ county_fips <- read_csv("../../data/county_fips_matches.csv", col_types = cols(
 df_ga_cvap <- df_ga_cvap %>%
   left_join(county_fips, by = c("COUNTY" = "fips")) %>%
   select(-COUNTY)
-
 
 # -----------------------
 # Get number of turned out voters by race
@@ -112,15 +111,15 @@ county_turnout <- readRDS(ga_agg_path) %>%
   summarize(
     tot_turnout = sum(
       whi_true_total + 
-        bla_true_total + 
-        his_true_total + 
-        asi_true_total +
-        oth_true_total
+      bla_true_total + 
+      his_true_total + 
+      asi_true_total +
+      oth_true_total
     ),
     whi_turnout = sum(whi_true_total),
     bla_turnout = sum(bla_true_total),
     his_turnout = sum(his_true_total),
-    oth_turnout = sum(oth_true_total + asi_true_total),
+    oth_turnout = sum(oth_true_total),
     n_prec = n()
   )
 

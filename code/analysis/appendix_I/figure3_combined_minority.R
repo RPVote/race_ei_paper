@@ -1,4 +1,4 @@
-# This script produces figure 2 from the main text. 
+# This script produces figure 3 from the main text. 
 
 # Import relevant libraries
 suppressWarnings(suppressMessages({
@@ -27,12 +27,12 @@ plot_theme <-
 # Set working directory to folder in which this file is located
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-base_path <- "../../data"
+base_path <- "../../../data"
 agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
 county_cvap_total <- readRDS(agg_path) %>%
   select(-geometry)
 
-all_ei <- readRDS("../../data/ei_results_all.rds")
+all_ei <- readRDS("ei_results_all_combined_minority.rds")
 
 all_ei <- all_ei %>%
   mutate(cand = gsub("_prop", "", cand),
@@ -48,42 +48,40 @@ all_ei %>%
   mutate(
     race = case_when(
       race == "whi" ~ "White",
-      race == "bla" ~ "Black",
-      race == "his" ~ "Hispanic",
-      race == "oth" ~ "Other"
+      race == "nwh" ~ "Non-white"
     ),
-    race = ordered(race, levels = c("White", "Black", "Hispanic", "Other")),
+    race = ordered(race, levels = c("White", "Non-white")),
     race_type = ordered(race_type, levels = c("exit_polls", "true", "cvap", "bisg", "fbisg", "fbisgf"))
   ) %>%
   ggplot(aes(x = race_type, y = mean, shape = ei_type, fill = race_type)) +
-    geom_errorbar(
-      aes(ymin = ci_95_lower, ymax = ci_95_upper),
-      width = 0,
-      size = 1,
-      position = position_dodge(.5)
-    ) +
-    geom_point(size = 5, position = position_dodge(.5)) +
-    scale_y_continuous(
-      limits = c(0, 1),
-      name = "Proportion voting for Abrams"
-    ) +
-    scale_x_discrete(
-      labels = c("Exit polls", "Known", "CVAP", "BISG", "FBISG", "FN-FBISG"),
-      name = "Source of turnout by race"
-    ) +
-    scale_shape_manual(
-      values = c(22, 24, 21),
-      labels = c("Exit polls", "Iterative EI", "RxC EI")
-    ) +
-    scale_fill_brewer(type = "qual") +
-    guides(fill = "none") +
-    facet_grid(. ~ race) +
-    plot_theme +
-    theme(
-      strip.text = element_text(size = 20),
-      strip.background = element_rect(fill = "white"),
-      axis.text.x = element_text(size = 16, angle = 45, hjust = 1),
-      legend.title = element_blank(),
-      legend.text = element_text(size = 20)
-    )
-ggsave("figure2.pdf", units = "in", height = 10, width = 16)
+  geom_errorbar(
+    aes(ymin = ci_95_lower, ymax = ci_95_upper),
+    width = 0,
+    size = 1,
+    position = position_dodge(.5)
+  ) +
+  geom_point(size = 5, position = position_dodge(.5)) +
+  scale_y_continuous(
+    limits = c(0, 1),
+    name = "Proportion voting for Abrams"
+  ) +
+  scale_x_discrete(
+    labels = c("Exit polls", "Known", "CVAP", "BISG", "FBISG", "FBISG with first name"),
+    name = "Source of turnout by race"
+  ) +
+  scale_shape_manual(
+    values = c(22, 24, 21),
+    labels = c("Exit polls", "Iterative EI", "RxC EI")
+  ) +
+  scale_fill_brewer(type = "qual") +
+  guides(fill = "none") +
+  facet_grid(. ~ race) +
+  plot_theme +
+  theme(
+    strip.text = element_text(size = 20),
+    strip.background = element_rect(fill = "white"),
+    axis.text.x = element_text(size = 16, angle = 45, hjust = 1),
+    legend.title = element_blank(),
+    legend.text = element_text(size = 20)
+  )
+ggsave("figure3_combined_minority.pdf", units = "in", height = 10, width = 16)

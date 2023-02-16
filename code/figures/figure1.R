@@ -6,7 +6,9 @@
 
 # Import relevant libraries
 suppressWarnings(suppressMessages({
+  library(ggh4x)
   library(tidyverse)
+  library(sf)
   library(patchwork)
 }))
 
@@ -17,7 +19,7 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 verbose <- TRUE
 # Set the base path: where all data files are located
 base_path <- "../../data"
-agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
+agg_path <- file.path(base_path, "ga_2018_agg_cvap.rds")
 agg <- readRDS(agg_path)
 
 # Plot theme
@@ -30,170 +32,64 @@ plot_theme <-
         axis.title.y = element_text(margin = margin(r = 20)),
         plot.title = element_text(size = 25, face = "bold", hjust = 0.5),
         plot.margin = unit(c(0, 20, 40, 0), "pt"),
-        legend.position = "none")
+        legend.position = "none",
+        strip.background = element_rect(fill = 'white'),
+        strip.text = element_text(size = 22))
 
-# White, BISG vs. CVAP
-plot_whi_bisg <-
-  ggplot(data = agg, aes(x = whi_true_prop, y = whi_bisg_prop)) +
+agg %>%
+  as_tibble() %>%
+  select(contains("true"), contains("bisg"), contains("cvap_ext"), total_votes) %>%
+  select(contains("prop"), total_votes) %>%
+  rename(
+    "whi_cvap_prop" = "whi_2018_cvap_ext_prop",
+    "bla_cvap_prop" = "bla_2018_cvap_ext_prop",
+    "his_cvap_prop" = "his_2018_cvap_ext_prop",
+    "asi_cvap_prop" = "asi_2018_cvap_ext_prop",
+    "oth_cvap_prop" = "oth_2018_cvap_ext_prop",
+  ) %>%
+  pivot_longer(
+    -any_of(c('whi_true_prop', 'bla_true_prop', 'his_true_prop', 
+            'asi_true_prop', 'oth_true_prop', 'total_votes')),
+    names_to = c("race", "type"),
+    names_sep = '_',
+    values_to = 'prp'
+  ) %>%
+  pivot_longer(contains("true"),
+               names_to = c("true_race", "_"),
+               names_sep = "_",
+               values_to = "true_prp") %>%
+  filter(race == true_race) %>%
+  mutate(
+    type = case_when(
+      type == "cvap" ~ "CVAP",
+      type == "bisg" ~ "BISG",
+      type == "fbisg" ~ "FBISG",
+      type == "fbisgf" ~ "FN-FBISG"
+    ),
+    type = ordered(type, levels = c('CVAP', "BISG", "FBISG", "FN-FBISG")),
+    race = case_when(
+      race == 'whi' ~ "White",
+      race == 'bla' ~ "Black",
+      race == 'his' ~ "Hispanic",
+      race == 'asi' ~ "Asian",
+      race == 'oth' ~ "Other",
+    ),
+    race = ordered(race, levels = c("White", "Black", "Hispanic", "Asian", "Other")) 
+  ) %>%
+  ggplot(aes(x = true_prp, y = prp, size = total_votes)) +
   geom_point(color = "black", alpha = alpha) +
   geom_abline(intercept = 0,
               slope = 1,
               color = "red",
               lwd = 1,
               linetype = "dashed") +
-  xlim(0, 1) + ylim(0, 1) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (BISG)") +
-  ggtitle("White, BISG") +
-  plot_theme +
-  coord_fixed()
-
-plot_whi_cvap <-
-  ggplot(data = agg, aes(x = whi_true_prop, y = whi_2018_cvap_ext_prop)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "red",
-              lwd = 1,
-              linetype = "dashed") +
-  xlim(0, 1) + ylim(0, 1) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  ggtitle("White, CVAP") +
-  plot_theme +
-  coord_fixed()
-
-# Black, BISG vs. CVAP
-plot_bla_bisg <-
-  ggplot(data = agg, aes(x = bla_true_prop, y = bla_bisg_prop)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "red",
-              lwd = 1,
-              linetype = "dashed") +
-  xlim(0, 1) + ylim(0, 1) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (BISG)") +
-  ggtitle("Black, BISG") +
-  plot_theme +
-  coord_fixed()
-
-plot_bla_cvap <-
-  ggplot(data = agg, aes(x = bla_true_prop, y = bla_2018_cvap_ext_prop)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "red",
-              lwd = 1,
-              linetype = "dashed") +
-  xlim(0, 1) + ylim(0, 1) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  ggtitle("Black, CVAP") +
-  plot_theme +
-  coord_fixed()
-
-# Hispanic/Latino, BISG vs. CVAP
-plot_his_bisg <-
-  ggplot(data = agg, aes(x = his_true_prop, y = his_bisg_prop)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "red",
-              lwd = 1,
-              linetype = "dashed") +
-  xlim(0, 0.5) + ylim(0, 0.5) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (BISG)") +
-  ggtitle("Hispanic/Latino, BISG") +
-  plot_theme +
-  coord_fixed()
-
-plot_his_cvap <-
-  ggplot(data = agg, aes(x = his_true_prop, y = his_2018_cvap_ext_prop)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "red",
-              lwd = 1,
-              linetype = "dashed") +
-  xlim(0, 0.5) + ylim(0, 0.5) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  ggtitle("Hispanic/Latino, CVAP") +
-  plot_theme +
-  coord_fixed()
-
-# Asian, BISG vs. CVAP
-plot_asi_bisg <-
-  ggplot(data = agg, aes(x = asi_true_prop, y = asi_bisg_prop)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "red",
-              lwd = 1,
-              linetype = "dashed") +
-  xlim(0, 0.3) + ylim(0, 0.3) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (BISG)") +
-  ggtitle("Asian/Pacific Islander, BISG") +
-  plot_theme +
-  coord_fixed()
-
-plot_asi_cvap <-
-  ggplot(data = agg, aes(x = asi_true_prop, y = asi_2018_cvap_ext_prop)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "red",
-              lwd = 1,
-              linetype = "dashed") +
-  xlim(0, 0.3) + ylim(0, 0.3) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  ggtitle("Asian/Pacific Islander, CVAP") +
-  plot_theme +
-  coord_fixed()
-
-# Other, BISG vs. CVAP
-plot_oth_bisg <-
-  ggplot(data = agg, aes(x = oth_true_prop, y = oth_bisg_prop)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "red",
-              lwd = 1,
-              linetype = "dashed") +
-  xlim(0, 0.1) + ylim(0, 0.1) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (BISG)") +
-  ggtitle("Other, BISG") +
-  plot_theme +
-  coord_fixed()
-
-plot_oth_cvap <-
-  ggplot(data = agg, aes(x = oth_true_prop, y = oth_2018_cvap_ext_prop)) +
-  geom_point(color = "black", alpha = alpha) +
-  geom_abline(intercept = 0,
-              slope = 1,
-              color = "red",
-              lwd = 1,
-              linetype = "dashed") +
-  xlim(0, 0.1) + ylim(0, 0.1) +
-  xlab("Observed Fraction (Self-Reported)") +
-  ylab("Estimated Fraction (CVAP)") +
-  ggtitle("Other, CVAP") +
-  plot_theme +
-  coord_fixed()
-
-# Create Figure 2: overall figure
-plot <-
-  plot_whi_bisg + plot_whi_cvap + theme(plot.margin = unit(c(0, 100, 0, 0), "pt")) +
-  plot_bla_bisg + plot_bla_cvap +
-  plot_his_bisg + plot_his_cvap + theme(plot.margin = unit(c(0, 100, 0, 0), "pt")) +
-  plot_asi_bisg + plot_asi_cvap +
-  plot_oth_bisg + plot_oth_cvap +
-  plot_layout(ncol = 4) +
-  plot_annotation(tag_levels = "a") & theme(plot.tag = element_text(size = 28, face = "bold"))
-ggsave(filename = "Figure1.pdf", plot = plot, width = 28, height = 21)
+  ylim(0, 1) +
+  scale_x_continuous(
+   # breaks = c(0, .25, .5, .75), 
+    name = "Observed Fraction (Self-Reported)",
+    limits = c(0, 1)) +
+  ylab("Estimated Fraction") +
+  ggh4x::facet_grid2(race ~ type, scales = 'free') +
+  plot_theme #+
+  #  coord_fixed()
+ggsave(filename = "figure1.pdf",  width = 21, height = 24)

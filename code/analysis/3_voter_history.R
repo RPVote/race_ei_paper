@@ -19,6 +19,10 @@ suppressWarnings(suppressMessages({
 # Preamble: Adjust these settings according to your use case
 # Turn verbosity on or off
 verbose <- TRUE
+
+# Set working directory to folder in which this file is located
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+
 # Set the base path: where all data files are located
 base_path <- "../../data"
 vh_path <- file.path(base_path, "ga_voter_file_history_11_06_2018.txt")
@@ -70,11 +74,21 @@ vf <-
       date_changed = readr::col_date(),
       date_last_contact = readr::col_date(),
       date_last_voted = readr::col_date(),
-      whi = readr::col_double(),
-      bla = readr::col_double(),
-      his = readr::col_double(),
-      asi = readr::col_double(),
-      oth = readr::col_double()))
+      whi_bisg = readr::col_double(),
+      bla_bisg = readr::col_double(),
+      his_bisg = readr::col_double(),
+      asi_bisg = readr::col_double(),
+      oth_bisg = readr::col_double(),
+      whi_fbisg = readr::col_double(),
+      bla_fbisg = readr::col_double(),
+      his_fbisg = readr::col_double(),
+      asi_fbisg = readr::col_double(),
+      oth_fbisg = readr::col_double(),
+      whi_fbisgf = readr::col_double(),
+      bla_fbisgf = readr::col_double(),
+      his_fbisgf = readr::col_double(),
+      asi_fbisgf = readr::col_double(),
+      oth_fbisgf = readr::col_double()))
 
 if (verbose) {
   message("Voter file read in.")

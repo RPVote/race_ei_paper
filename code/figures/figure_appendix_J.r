@@ -1,4 +1,4 @@
-# This script produces figure 2 from the main text. 
+# This script produces figure 3 from the main text. 
 
 # Import relevant libraries
 suppressWarnings(suppressMessages({
@@ -44,7 +44,7 @@ all_ei <- all_ei %>%
          )) 
 
 all_ei %>%
-  filter(cand == "abrams", race_type != 'cvap_novote') %>%
+  filter(cand == "abrams", race_type %in% c('cvap', 'cvap_novote')) %>%
   mutate(
     race = case_when(
       race == "whi" ~ "White",
@@ -53,7 +53,7 @@ all_ei %>%
       race == "oth" ~ "Other"
     ),
     race = ordered(race, levels = c("White", "Black", "Hispanic", "Other")),
-    race_type = ordered(race_type, levels = c("exit_polls", "true", "cvap", "bisg", "fbisg", "fbisgf"))
+    race_type = ordered(race_type, levels = c("cvap", "cvap_novote"))
   ) %>%
   ggplot(aes(x = race_type, y = mean, shape = ei_type, fill = race_type)) +
     geom_errorbar(
@@ -68,14 +68,14 @@ all_ei %>%
       name = "Proportion voting for Abrams"
     ) +
     scale_x_discrete(
-      labels = c("Exit polls", "Known", "CVAP", "BISG", "FBISG", "FN-FBISG"),
+      labels = c("CVAP", "CVAP (no-vote adjustment)"),
       name = "Source of turnout by race"
     ) +
     scale_shape_manual(
       values = c(22, 24, 21),
       labels = c("Exit polls", "Iterative EI", "RxC EI")
     ) +
-    scale_fill_brewer(type = "qual") +
+    scale_fill_manual(values = c("black", 'white')) +
     guides(fill = "none") +
     facet_grid(. ~ race) +
     plot_theme +
@@ -83,7 +83,8 @@ all_ei %>%
       strip.text = element_text(size = 20),
       strip.background = element_rect(fill = "white"),
       axis.text.x = element_text(size = 16, angle = 45, hjust = 1),
+      axis.title.x = element_blank(),
       legend.title = element_blank(),
       legend.text = element_text(size = 20)
     )
-ggsave("figure2.pdf", units = "in", height = 10, width = 16)
+ggsave("appendix_J.pdf", units = "in", height = 10, width = 16)

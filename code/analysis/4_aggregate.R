@@ -33,22 +33,33 @@ if (verbose) {
 
 # Import voter file and filter out a specific precinct, since it only has one
 # voter
-vf <- readr::read_csv(
-  vf_path,
-  col_types = readr::cols(
-    .default = readr::col_character(),
-    registration_number = readr::col_double(),
-    birthyear = readr::col_double(),
-    date_registration = readr::col_date(),
-    date_added = readr::col_date(),
-    date_changed = readr::col_date(),
-    date_last_contact = readr::col_date(),
-    date_last_voted = readr::col_date(),
-    whi = readr::col_double(),
-    bla = readr::col_double(),
-    his = readr::col_double(),
-    asi = readr::col_double(),
-    oth = readr::col_double())) %>%
+vf <-
+  readr::read_csv(
+    vf_path,
+    col_types = readr::cols(
+      .default = readr::col_character(),
+      registration_number = readr::col_double(),
+      birthyear = readr::col_double(),
+      date_registration = readr::col_date(),
+      date_added = readr::col_date(),
+      date_changed = readr::col_date(),
+      date_last_contact = readr::col_date(),
+      date_last_voted = readr::col_date(),
+      whi_bisg = readr::col_double(),
+      bla_bisg = readr::col_double(),
+      his_bisg = readr::col_double(),
+      asi_bisg = readr::col_double(),
+      oth_bisg = readr::col_double(),
+      whi_fbisg = readr::col_double(),
+      bla_fbisg = readr::col_double(),
+      his_fbisg = readr::col_double(),
+      asi_fbisg = readr::col_double(),
+      oth_fbisg = readr::col_double(),
+      whi_fbisgf = readr::col_double(),
+      bla_fbisgf = readr::col_double(),
+      his_fbisgf = readr::col_double(),
+      asi_fbisgf = readr::col_double(),
+      oth_fbisgf = readr::col_double())) %>%
   dplyr::filter(precinct_id_2018 != "Fulton,Sc17B")  
 
 rows <- nrow(vf)
@@ -103,19 +114,8 @@ bisg <-
   eiCompare::precinct_agg_combine(
     voter_file = vf,
     group_col = "precinct_id_2018",
-    race_cols = c("whi", "bla", "his", "asi", "oth"),
+    race_cols = c("whi_bisg", "bla_bisg", "his_bisg", "asi_bisg", "oth_bisg"),
     include_total = TRUE) %>%
-  dplyr::rename(
-    whi_bisg_prop = whi_prop,
-    bla_bisg_prop = bla_prop,
-    his_bisg_prop = his_prop,
-    asi_bisg_prop = asi_prop,
-    oth_bisg_prop = oth_prop,
-    whi_bisg_total = whi_total,
-    bla_bisg_total = bla_total,
-    his_bisg_total = his_total,
-    asi_bisg_total = asi_total,
-    oth_bisg_total = oth_total) %>%
   dplyr::select(
     precinct_id_2018,
     whi_bisg_prop,
@@ -129,8 +129,47 @@ bisg <-
     asi_bisg_total,
     oth_bisg_total)
 
+fbisg <-
+  eiCompare::precinct_agg_combine(
+    voter_file = vf,
+    group_col = "precinct_id_2018",
+    race_cols = c("whi_fbisg", "bla_fbisg", "his_fbisg", "asi_fbisg", "oth_fbisg"),
+    include_total = TRUE) %>%
+  dplyr::select(
+    precinct_id_2018,
+    whi_fbisg_prop,
+    bla_fbisg_prop,
+    his_fbisg_prop,
+    asi_fbisg_prop,
+    oth_fbisg_prop,
+    whi_fbisg_total,
+    bla_fbisg_total,
+    his_fbisg_total,
+    asi_fbisg_total,
+    oth_fbisg_total)
+
+fbisgf <-
+  eiCompare::precinct_agg_combine(
+    voter_file = vf,
+    group_col = "precinct_id_2018",
+    race_cols = c("whi_fbisgf", "bla_fbisgf", "his_fbisgf", "asi_fbisgf", "oth_fbisgf"),
+    include_total = TRUE) %>%
+  dplyr::select(
+    precinct_id_2018,
+    whi_fbisgf_prop,
+    bla_fbisgf_prop,
+    his_fbisgf_prop,
+    asi_fbisgf_prop,
+    oth_fbisgf_prop,
+    whi_fbisgf_total,
+    bla_fbisgf_total,
+    his_fbisgf_total,
+    asi_fbisgf_total,
+    oth_fbisgf_total)
+
+
 # Bind all self-reported/BISG results together
-agg <- dplyr::bind_cols(self_reported, bisg[, -1])
+agg <- dplyr::bind_cols(self_reported, bisg[, -1], fbisg[,-1], fbisgf[,-1])
 
 if (verbose) {
   message("Aggregation complete.")

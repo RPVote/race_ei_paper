@@ -1,89 +1,99 @@
-# This script produces figure 3 from the main text. 
-
-# Import relevant libraries
-suppressWarnings(suppressMessages({
-  library(eiCompare)
-  library(readr)
+#'
+#' This script generates figure 4 from the main text
+#'
+suppressPackageStartupMessages({
   library(tidyverse)
-}))
+  library(tidycensus)
+  library(ggtext)
+  library(tidymodels)
+  library(sf)
+})
 
-# Preamble: Adjust these settings according to your use case
-# Turn verbosity on or off
-verbose <- TRUE
-# Set the base path: where all data files are located
+base_path <- "../../data"
+
+# Set working directory to folder in which this file is located
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 # Plot theme
 alpha <- 0.25
 plot_theme <-
   theme_bw() +
-  theme(axis.text = element_text(size = 20),
+  theme(axis.text = element_text(size = 16),
         axis.title = element_text(size = 23, face = "bold"),
         axis.title.x = element_text(margin = margin(t = 20)),
         axis.title.y = element_text(margin = margin(r = 20)),
         plot.title = element_text(size = 27, face = "bold"),
         legend.position = "bottom")
 
+all_ei_county <- readRDS(file.path(base_path, "county_ei_turnout.rds"))
 
-# Set working directory to folder in which this file is located
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+all_ei_county <- all_ei_county %>%
+  filter(n_prec > 5)
 
-base_path <- "../../data"
-agg_path <- file.path(base_path, "ga_2018_agg_all.rds")
-county_cvap_total <- readRDS(agg_path) %>%
-  select(-geometry)
+fit_model <- function(df) {
+  lm(diff ~ tot_turnout_prp, df)
+}
 
-all_ei <- readRDS("../../data/ei_results_all.rds")
+all_ei_county_f4 <- all_ei_county %>%
+  filter(race_type == "cvap") %>%
+  group_by(race, type) %>%
+  nest() %>%
+  mutate(
+    model = map(data, fit_model),
+    tidied = map(model, ~ tidy(., conf.int = TRUE))
+  ) %>%
+  unnest(data) %>%
+  unnest(tidied) %>%
+  filter(term == "tot_turnout_prp") %>%
+  group_by(type, race) %>%
+  mutate(n_county = sum(!is.na(diff))) %>%
+  ungroup() %>%
+  mutate(
+    text = paste0(
+      "Beta = ",
+      round(estimate, 3), 
+      " [", 
+      round(conf.low, 3), 
+      ", ", 
+      round(conf.high, 3), 
+      "], N = ",
+      n_county
+    )
+  )
 
-all_ei <- all_ei %>%
-  mutate(cand = gsub("_prop", "", cand),
-         race = str_sub(race, 1, 3),
-         jitter = case_when(
-           ei_type == "iter" ~ -.5,
-           ei_type == "rxc" ~ .5,
-           ei_type == "exit_polls" ~ 0
-         )) 
-
-all_ei %>%
-  filter(cand == "abrams") %>%
+all_ei_county_f4 %>%
   mutate(
     race = case_when(
       race == "whi" ~ "White",
       race == "bla" ~ "Black",
       race == "his" ~ "Hispanic",
       race == "oth" ~ "Other"
-    ),
+    ), 
     race = ordered(race, levels = c("White", "Black", "Hispanic", "Other")),
-    race_type = ordered(race_type, levels = c("exit_polls", "true", "bisg", "cvap"))
+    type = ifelse(type == "iter", "Iterative EI", "RxC EI")
   ) %>%
-  ggplot(aes(x = race_type, y = mean, shape = ei_type, fill = race_type)) +
-    geom_errorbar(
-      aes(ymin = ci_95_lower, ymax = ci_95_upper),
-      width = 0,
-      size = 1,
-      position = position_dodge(.5)
-    ) +
-    geom_point(size = 5, position = position_dodge(.5)) +
-    scale_y_continuous(
-      limits = c(0, 1),
-      name = "Proportion voting for Abrams"
-    ) +
-    scale_x_discrete(
-      labels = c("Exit\npolls", "Known", "BISG", "CVAP"),
-      name = "Source of turnout by race"
-    ) +
-    scale_shape_manual(
-      values = c(22, 24, 21),
-      labels = c("Exit polls", "Iterative EI", "RxC EI")
-    ) +
-    scale_fill_brewer(type = "qual") +
-    guides(fill = "none") +
-    facet_grid(. ~ race) +
-    plot_theme +
-    theme(
-      strip.text = element_text(size = 20),
-      strip.background = element_rect(fill = "white"),
-      axis.text.x = element_text(size = 16),
-      legend.title = element_blank(),
-      legend.text = element_text(size = 20)
-    )
-ggsave("figure3.pdf", units = "in", height = 10, width = 16)
+  ggplot(aes(x = tot_turnout_prp, y = diff)) +
+  geom_point(aes(size = n_prec), alpha = alpha) + 
+  geom_smooth(method = 'lm', color = 'black') +
+  geom_hline(yintercept = 0, color = 'red', linetype = "dashed") +
+  geom_label(
+    aes(x = -Inf, y = -Inf, vjust = 0, hjust = 0, label = text),
+    size = 4,
+    label.r = unit(0, "pt")
+  ) +
+  facet_grid(type ~ race) +
+  ylab("Difference in predicted share voting for Abrams<br>(BISG - CVAP)") + 
+  xlab("Turnout as proportion of CVAP") +
+  coord_cartesian(ylim = c(-.5, .5)) +
+  scale_size_continuous(name = "Number of precincts") + 
+  plot_theme +
+  theme(
+    strip.text = element_text(size = 20),
+    strip.background = element_rect(fill = "white"),
+    axis.text.x = element_text(size = 16),
+    legend.title = element_text(size = 20),
+    legend.text = element_text(size = 20),
+    axis.title.y = element_markdown(),
+    panel.spacing = unit(.15, "in")
+  )
+ggsave("figure3.pdf", height = 10, width = 16)

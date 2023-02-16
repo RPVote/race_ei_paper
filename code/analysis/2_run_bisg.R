@@ -11,7 +11,6 @@
 
 # Import relevant libraries
 suppressWarnings(suppressMessages({
-  library(bisg)
   library(readr)
   library(wru)
 }))
@@ -58,12 +57,8 @@ if (verbose) {
 
 # Extract the block counts from the Census. To run this, you must have a Census
 # API key for use in tidycensus
-block_counts <- bisg::get_census_race_counts(
-  geography = "block",
-  state = "13",
-  county = NULL,
-  year = 2010,
-  cache = TRUE)
+future::plan(future::multisession)
+census <- get_census_data(states="GA")
 
 if (verbose) {
   message("Block counts obtained.")
@@ -73,17 +68,66 @@ if (verbose) {
 }
 
 # Apply BISG using the block counts and voter file
-vf <- bisg::bisg(
-  voter_file = vf,
-  surname_col = "last_name",
-  geo_col = "fips_2010",
-  census_counts = block_counts,
-  geography = "block",
-  state = "GA",
-  year = 2010,
-  impute_missing = TRUE,
-  verbose = TRUE,
-  cache = TRUE)
+vf_bisg <- vf %>%
+  rename('block' = 'fips_block_2010',
+         'county' = 'fips_county_2010',
+         'tract' = 'fips_tract_2010',
+         'surname' = 'last_name',
+         'first' = 'first_name') %>%
+  mutate("state" = 'GA') %>%
+  select(registration_number, surname, first, block, tract, county, state) %>%
+  filter(!is.na(surname)) %>%
+  wru::predict_race(
+    census.data = census,
+    census.geo = "block",
+    model = 'BISG',
+    names.to.use = 'surname'
+  ) %>%
+  select(registration_number, contains("pred"))
+
+vf_fbisg <- vf %>%
+  rename('block' = 'fips_block_2010',
+         'county' = 'fips_county_2010',
+         'tract' = 'fips_tract_2010',
+         'surname' = 'last_name',
+         'first' = 'first_name') %>%
+  mutate("state" = 'GA') %>%
+  select(registration_number, surname, first, block, tract, county, state) %>%
+  filter(!is.na(surname)) %>%
+  wru::predict_race(
+    census.data = census,
+    census.geo = "block",
+    model = 'fBISG',
+    names.to.use = 'surname'
+  ) %>%
+  select(registration_number, contains("pred"))
+
+vf_fbisg_names <- vf %>%
+  rename('block' = 'fips_block_2010',
+         'county' = 'fips_county_2010',
+         'tract' = 'fips_tract_2010',
+         'surname' = 'last_name',
+         'first' = 'first_name') %>%
+  mutate("state" = 'GA') %>%
+  select(registration_number, surname, first, block, tract, county, state) %>%
+  filter(!is.na(surname)) %>%
+  wru::predict_race(
+    census.data = census,
+    census.geo = "block",
+    model = 'fBISG',
+    names.to.use = 'surname, first'
+  ) %>%
+  select(registration_number, contains("pred"))
+
+names(vf_bisg) <- c("registration_number", 'whi_bisg', 'bla_bisg', 'his_bisg', 'asi_bisg', 'oth_bisg')
+names(vf_fbisg) <- c("registration_number", 'whi_fbisg', 'bla_fbisg', 'his_fbisg', 'asi_fbisg', 'oth_fbisg')
+names(vf_fbisg_names) <- c("registration_number", 'whi_fbisgf', 'bla_fbisgf', 'his_fbisgf', 'asi_fbisgf', 'oth_fbisgf')
+
+vf <- vf %>% 
+  inner_join(vf_bisg) %>%
+  inner_join(vf_fbisg) %>%
+  inner_join(vf_fbisg_names)
+
 
 if (verbose) {
   message("==============================================================")

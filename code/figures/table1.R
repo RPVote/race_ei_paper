@@ -45,6 +45,18 @@ get_errors(race_ests$his_true_prop, race_ests$his_2018_cvap_ext_prop)
 get_errors(race_ests$asi_true_prop, race_ests$asi_2018_cvap_ext_prop)
 get_errors(race_ests$oth_true_prop, race_ests$oth_2018_cvap_ext_prop)
 
+get_errors(race_ests$whi_true_prop, race_ests$whi_fbisg_prop)
+get_errors(race_ests$bla_true_prop, race_ests$bla_fbisg_prop)
+get_errors(race_ests$his_true_prop, race_ests$his_fbisg_prop)
+get_errors(race_ests$asi_true_prop, race_ests$asi_fbisg_prop)
+get_errors(race_ests$oth_true_prop, race_ests$oth_fbisg_prop)
+
+get_errors(race_ests$whi_true_prop, race_ests$whi_fbisgf_prop)
+get_errors(race_ests$bla_true_prop, race_ests$bla_fbisgf_prop)
+get_errors(race_ests$his_true_prop, race_ests$his_fbisgf_prop)
+get_errors(race_ests$asi_true_prop, race_ests$asi_fbisgf_prop)
+get_errors(race_ests$oth_true_prop, race_ests$oth_fbisgf_prop)
+
 get_errors(race_ests$whi_true_prop, race_ests$whi_bisg_prop)
 get_errors(race_ests$bla_true_prop, race_ests$bla_bisg_prop)
 get_errors(race_ests$his_true_prop, race_ests$his_bisg_prop)
@@ -61,6 +73,18 @@ briers <- race_ests %>%
     asi_dev2_bisg = (asi_true_prop - asi_bisg_prop)^2,
     oth_dev2_bisg = (oth_true_prop - oth_bisg_prop)^2,
     
+    whi_dev2_fbisg = (whi_true_prop - whi_fbisg_prop)^2,
+    bla_dev2_fbisg = (bla_true_prop - bla_fbisg_prop)^2,
+    his_dev2_fbisg = (his_true_prop - his_fbisg_prop)^2,
+    asi_dev2_fbisg = (asi_true_prop - asi_fbisg_prop)^2,
+    oth_dev2_fbisg = (oth_true_prop - oth_fbisg_prop)^2,
+    
+    whi_dev2_fbisgf = (whi_true_prop - whi_fbisgf_prop)^2,
+    bla_dev2_fbisgf = (bla_true_prop - bla_fbisgf_prop)^2,
+    his_dev2_fbisgf = (his_true_prop - his_fbisgf_prop)^2,
+    asi_dev2_fbisgf = (asi_true_prop - asi_fbisgf_prop)^2,
+    oth_dev2_fbisgf = (oth_true_prop - oth_fbisgf_prop)^2,
+    
     whi_dev2_cvap = (whi_true_prop - whi_2018_cvap_ext_prop)^2,
     bla_dev2_cvap = (bla_true_prop - bla_2018_cvap_ext_prop)^2,
     his_dev2_cvap = (his_true_prop - his_2018_cvap_ext_prop)^2,
@@ -68,17 +92,25 @@ briers <- race_ests %>%
     oth_dev2_cvap = (oth_true_prop - oth_2018_cvap_ext_prop)^2,
     
     brier_bisg = whi_dev2_bisg + bla_dev2_bisg + his_dev2_bisg + asi_dev2_bisg + oth_dev2_bisg,
+    brier_fbisg = whi_dev2_fbisg + bla_dev2_fbisg + his_dev2_fbisg + asi_dev2_fbisg + oth_dev2_fbisg,
+    brier_fbisgf = whi_dev2_fbisgf + bla_dev2_fbisgf + his_dev2_fbisgf + asi_dev2_fbisgf + oth_dev2_fbisgf,
     brier_cvap = whi_dev2_cvap + bla_dev2_cvap + his_dev2_cvap + asi_dev2_cvap + oth_dev2_cvap,
     
     brier_bisg_w = log(n_voters)*brier_bisg,
+    brier_fbisg_w = log(n_voters)*brier_fbisg,
+    brier_fbisgf_w = log(n_voters)*brier_fbisgf,
     brier_cvap_w = log(n_voters)*brier_cvap
     
   ) %>%
   summarise(
     brier_bisg = mean(brier_bisg),
+    brier_fbisg = mean(brier_fbisg),
+    brier_fbisgf = mean(brier_fbisgf),
     brier_cvap = mean(brier_cvap),
     
     brier_bisg_w = 1/sum(log(n_voters))*sum(brier_bisg_w),
+    brier_fbisg_w = 1/sum(log(n_voters))*sum(brier_fbisg_w),
+    brier_fbisgf_w = 1/sum(log(n_voters))*sum(brier_fbisgf_w),
     brier_cvap_w = 1/sum(log(n_voters))*sum(brier_cvap_w)
   )
 

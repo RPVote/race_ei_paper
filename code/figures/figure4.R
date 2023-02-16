@@ -1,96 +1,59 @@
-#'
-#' This script generates figure 4 from the main text
-#'
 suppressPackageStartupMessages({
   library(tidyverse)
-  library(tidycensus)
-  library(ggtext)
-  library(tidymodels)
-  library(sf)
 })
 
-base_path <- "../../data"
+# Preamble: Adjust these settings according to your use case
+# Turn verbosity on or off
+verbose <- TRUE
+# Set the base path: where all data files are located
+
+plot_theme <-
+  theme_bw() +
+  theme(axis.text = element_text(size = 10),
+        axis.title = element_text(size = 10, face = "bold"),
+        axis.title.x = element_text(margin = margin(t = 20)),
+        axis.title.y = element_text(margin = margin(r = 20)),
+        plot.title = element_text(size = 14, face = "bold"),
+        legend.position = "bottom")
 
 # Set working directory to folder in which this file is located
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
-# Plot theme
-alpha <- 0.25
-plot_theme <-
-  theme_bw() +
-  theme(axis.text = element_text(size = 16),
-        axis.title = element_text(size = 23, face = "bold"),
-        axis.title.x = element_text(margin = margin(t = 20)),
-        axis.title.y = element_text(margin = margin(r = 20)),
-        plot.title = element_text(size = 27, face = "bold"),
-        legend.position = "bottom")
+base_path <- "../../data"
+results_2016_path <- file.path(base_path, "ersd_all.rds")
 
-all_ei_county <- readRDS(file.path(base_path, "county_ei_turnout.rds"))
+results <- readRDS(results_2016_path)
 
-fit_model <- function(df) {
-  lm(diff ~ tot_turnout_prp, df)
-}
-
-all_ei_county_f4 <- all_ei_county %>%
-  filter(race_type == "cvap") %>%
-  group_by(race, type) %>%
-  nest() %>%
-  mutate(
-    model = map(data, fit_model),
-    tidied = map(model, ~ tidy(., conf.int = TRUE))
+results %>%
+  select(-contains("_total"), -morales_prop, - weissmandl_prop) %>%
+  pivot_longer(
+    -any_of(c("ed_school", "total")),
+    names_to = c('race', 'method'),
+    names_sep = '_',
+    values_to = 'prop'
   ) %>%
-  unnest(data) %>%
-  unnest(tidied) %>%
-  filter(term == "tot_turnout_prp") %>%
-  group_by(type, race) %>%
-  mutate(n_county = sum(!is.na(diff))) %>%
-  ungroup() %>%
   mutate(
-    text = paste0(
-      "Beta = ",
-      round(estimate, 3), 
-      " [", 
-      round(conf.low, 3), 
-      ", ", 
-      round(conf.high, 3), 
-      "], N = ",
-      n_county
-    )
-  )
-
-all_ei_county_f4 %>%
-  mutate(
-    race = case_when(
-      race == "whi" ~ "White",
-      race == "bla" ~ "Black",
-      race == "his" ~ "Hispanic",
-      race == "oth" ~ "Other"
-    ), 
-    race = ordered(race, levels = c("White", "Black", "Hispanic", "Other")),
-    type = ifelse(type == "iter", "Iterative EI", "RxC EI")
+    method = case_when(
+      method == '2016' ~ "CVAP",
+      method == 'bisg' ~ "BISG",
+      method == 'fbisg' ~ "FBISG",
+      method == 'fbisgf' ~ "FBISG + First"
+    ),
+    method = ordered(method, levels = c('FBISG + First', 'FBISG', 'BISG', 'CVAP'))
   ) %>%
-  ggplot(aes(x = tot_turnout_prp, y = diff)) +
-  geom_point(aes(size = n_prec), alpha = alpha) + 
-  geom_smooth(method = 'lm', color = 'black') +
-  geom_hline(yintercept = 0, color = 'red', linetype = "dashed") +
-  geom_label(
-    aes(x = -Inf, y = -Inf, vjust = 0, hjust = 0, label = text),
-    size = 4,
-    label.r = unit(0, "pt")
-  ) +
-  facet_grid(type ~ race) +
-  ylab("Difference in predicted share voting for Abrams<br>(BISG - CVAP)") + 
-  xlab("Turnout as proportion of CVAP") +
-  coord_cartesian(ylim = c(-.5, .5)) +
-  scale_size_continuous(name = "Number of precincts") + 
-  plot_theme +
-  theme(
-    strip.text = element_text(size = 20),
-    strip.background = element_rect(fill = "white"),
-    axis.text.x = element_text(size = 16),
-    legend.title = element_text(size = 20),
-    legend.text = element_text(size = 20),
-    axis.title.y = element_markdown(),
-    panel.spacing = unit(.15, "in")
-  )
-ggsave("figure4.pdf", height = 10, width = 16)
+  filter(race %in% c('whi')) %>%
+  ggplot(aes(y = method, x = prop, fill = method)) +
+    facet_wrap(ed_school ~ ., ncol = 5) +
+    geom_label(aes(label = round(prop, 3)), size = 2) + 
+    scale_x_continuous(limits = c(0, 1.1), name = "Estimated proportion of white voters",
+                       breaks = c(0, .25, .5, .75, 1)) + 
+    scale_fill_brewer(type = 'qual') +
+    plot_theme +
+    theme(axis.text.x = element_text(size = 7),
+          axis.title.y = element_blank(),
+          axis.text.y = element_text(angle = 45, size = 7),
+          strip.background = element_rect(fill = 'white'),
+          strip.text = element_text(size = 8),
+          legend.position = 'None')
+
+ggsave("figure4.pdf", height = 4, width = 8)

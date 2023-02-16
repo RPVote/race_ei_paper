@@ -46,7 +46,7 @@ plot <- all_ei %>%
       race == "bla" ~ "Black"
     ),
     race = ordered(race, levels = c("White", "Black")),
-    race_type = ordered(race_type, levels = c("bisg", "cvap"))
+    race_type = ordered(race_type, levels = c("cvap", "bisg", "fbisg", "fbisgf"))
   ) %>%
   ggplot(aes(x = race_type, y = mean, shape = ei_type, fill = race_type)) +
     geom_errorbar(
@@ -61,22 +61,23 @@ plot <- all_ei %>%
       name = "Proportion voting for Morales"
     ) +
     scale_x_discrete(
-      labels = c("BISG", "CVAP"),
+      labels = c("CVAP", "BISG", "FBISG", "FN-FBISG"),
       name = "Source of turnout by race"
     ) +
     scale_shape_manual(
       values = c(22, 24, 21),
       labels = c("Iterative EI", "RxC EI")
     ) +
-    scale_fill_manual(values = list(bisg = "#FCC086", cvap = "#FDFF99")) +
+    scale_fill_brewer(type = 'qual') +
     guides(fill = "none") +
     facet_grid(. ~ race) +
     plot_theme +
     theme(
       strip.text = element_text(size = 20),
       strip.background = element_rect(fill = "white"),
-      axis.text.x = element_text(size = 16),
+      axis.text.x = element_text(size = 16, angle = 90, vjust = 0.5, hjust=1),
       legend.title = element_blank(),
       legend.text = element_text(size = 20)
     )
+plot
 ggsave("figure5.pdf", units = "in", height = 8, width = 9)

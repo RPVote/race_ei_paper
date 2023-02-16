@@ -37,7 +37,7 @@ all_ei <- readRDS("../../../data/ei_results_all.rds")
 all_ei_unk <- readRDS("ei_results_unk.rds")
 
 all_ei_bisg <- all_ei %>%
-  filter(race_type == 'bisg') %>%
+  filter(race_type %in% c('bisg', 'fbisg', 'fbisgf')) %>%
   rbind(all_ei_unk)
 
 all_ei_bisg <- all_ei_bisg %>%
@@ -50,7 +50,7 @@ all_ei_bisg <- all_ei_bisg %>%
          )) 
 
 all_ei_bisg %>%
-  filter(cand == "abrams") %>%
+  filter(cand == "abrams", !grepl('true', race_type)) %>%
   mutate(
     race = case_when(
       race == "whi" ~ "White",
@@ -59,9 +59,15 @@ all_ei_bisg %>%
       race == "oth" ~ "Other"
     ),
     race = ordered(race, levels = c("White", "Black", "Hispanic", "Other")),
-    race_type = ordered(race_type, levels = c("bisg", "bisg_unk"))
+    type = ifelse(grepl("_", race_type), "With Unknown", 'Without Unknown'),
+    race_type = sub("_unk", "", race_type),
+    race_type = case_when(
+      race_type == 'bisg' ~ "BISG",
+      race_type == 'fbisg' ~ "FBISG",
+      race_type == 'fbisgf' ~ "FBISG + First Name"
+    )
   ) %>%
-  ggplot(aes(x = race_type, y = mean, shape = ei_type, fill = race_type)) +
+  ggplot(aes(x = type, y = mean, shape = ei_type, fill = type)) +
     geom_errorbar(
       aes(ymin = ci_95_lower, ymax = ci_95_upper),
       width = 0,
@@ -73,23 +79,20 @@ all_ei_bisg %>%
       limits = c(0, 1),
       name = "Proportion voting for Abrams"
     ) +
-    scale_x_discrete(
-      labels = c("Without unk.", "With unk."),
-      name = "BISG type"
-    ) +
     scale_shape_manual(
       values = c(22, 24, 21),
       labels = c("Iterative EI", "RxC EI")
     ) +
     scale_fill_manual(values = c("black", "white")) +
     guides(fill = "none") +
-    facet_grid(. ~ race) +
+    facet_grid(race_type ~ race) +
     plot_theme +
     theme(
       strip.text = element_text(size = 20),
       strip.background = element_rect(fill = "white"),
-      axis.text.x = element_text(size = 16),
+      axis.text.x = element_text(size = 16, angle = 90, hjust = .5, vjust = 0),
       legend.title = element_blank(),
-      legend.text = element_text(size = 20)
+      legend.text = element_text(size = 20),
+      axis.title.x = element_blank(),
     )
-ggsave("ei_results_unk.pdf", units = "in", height = 6, width = 16)
+ggsave("ei_results_unk.pdf", units = "in", height = 10, width = 16)
