@@ -1,5 +1,5 @@
 #'
-#' This script generates figure 4 from the main text
+#' This script generates figure 3 from the main text
 #'
 suppressPackageStartupMessages({
   library(tidyverse)

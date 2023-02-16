@@ -1,4 +1,4 @@
-# This script produces figure 3 from the main text. 
+# This script produces the figure for appendix J. 
 
 # Import relevant libraries
 suppressWarnings(suppressMessages({
